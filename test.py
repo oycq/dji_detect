@@ -1,8 +1,10 @@
 import cv2
 import torch
+import os
+import time 
 
-vidoes_names = ['GH010083.MP4' , 'GH010085.MP4' , 'GH010086.MP4' , 'GH010087.MP4']
-video_path = '../data'
+def resize_frame(frame):
+    return frame[80:1360]
 
 def tensor_to_mat(tensor):
     reframe = tensor.data.numpy().astype('float32')*255
@@ -18,39 +20,31 @@ def video_to_disk(input_path,vidoe_name,output_path):
         if status != 1:
             print(i,0)
             continue
+        frame = resize_frame(frame)
         f16_tensor = torch.tensor(frame.transpose((2,0,1)) / 255.0,dtype = torch.float16)
-        torch.save(f16_tensor,output_path+"/"+video_name.split('.')[0]+str(i)+'.pt')
+        torch.save(f16_tensor,output_path+"/"+video_name.split('.')[0]+'_'+str(i)+'.pt')
         print(i) 
-    cap.close()
+    cap.release()
 
 
-for video_name in vidoes_names:
-    video_to_disk(video_path, video_name, '../data/disk')
-
-#    cap = cv2.VideoCapture(video_path + '/' + video_name)
-#    #print(cap.get(cv2.CAP_PROP_FPS)) 29.9
-#    frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-#    print(video_path,frame_count * 1440 * 1920 * 3 * 2.0 / 1024 / 1024 / 1024)
-#
-#    for i in range(frame_count):
-#        status, frame = cap.read()
-#        print(i, status)
-#        if status != 1:
-#            continue
-#        #print(frame.shape) 1440*1920*3
-#        #print(type(frame),frame.dtype)
-#        #cv2.imshow('frame',frame)
-#        return_key = cv2.waitKey(0) & 0xff
-#        data = torch.tensor(frame.transpose((2,0,1)) / 255.0, dtype = torch.float16)
-#        reframe = tensor_to_mat(data)
+if __name__ == "__main__":#load 100 frame in disk and get its time
+    vidoes_names = ['GH010083.MP4' , 'GH010085.MP4' , 'GH010086.MP4' , 'GH010087.MP4']
+    video_path = '../data'
+    output_path = '../data/disk'
+    items_name = os.listdir(output_path)
+    k = 0
+    time_last = time.time()
+    for item in items_name:
+        tensor = torch.load(output_path + '/' + item)
+        k = k+1
+        if k % 10 == 0:
+            print(k,time.time()-time_last)
+            time_last = time.time()
+#        reframe = tensor_to_mat(tensor)
+#        print(reframe.shape)
 #        cv2.imshow('reframe',reframe)
-#
-#         
-#        print(data.shape)
+#        return_key = cv2.waitKey(0)
 #        if return_key == ord(' '):
 #            pass
 #        if return_key == ord('q'):
 #            break
-
-
-
