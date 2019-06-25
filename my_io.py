@@ -40,11 +40,5 @@ if __name__ == "__main__":#load 100 frame in disk and get its time
         if k % 10 == 0:
             print(k,time.time()-time_last)
             time_last = time.time()
-#        reframe = tensor_to_mat(tensor)
-#        print(reframe.shape)
-#        cv2.imshow('reframe',reframe)
-#        return_key = cv2.waitKey(0)
-#        if return_key == ord(' '):
-#            pass
-#        if return_key == ord('q'):
-#            break
+
+
