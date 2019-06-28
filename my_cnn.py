@@ -1,30 +1,32 @@
+import torch
+import progressbar
+from torchsummary import summary
 import torch.nn as nn
-import my_io
+import my_dataloader
+import torch.optim as optim
+from torch.autograd import Variable
 
-cfg = [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', 512, 512, 512, 'M']
-
+cfg = [8, 'M', 16, 'M', 32, 'M', 64, 'M', 32, 'M', 16, 'M', 8, 'M']
+num_classes = 2
 
 class FMD(nn.Module):
 
-    def __init__(self, num_classes=1000, init_weights=True):
-        super(VGG, self).__init__()
+    def __init__(self):
+        super(FMD, self).__init__()
         self.features = self._make_layers(cfg, batch_norm=True)
-        self.avgpool = nn.AdaptiveAvgPool2d((7, 7))
         self.classifier = nn.Sequential(
-            nn.Linear(512 * 7 * 7, 4096),
+            nn.Linear(8 * 15 * 10, 512),
             nn.ReLU(True),
             nn.Dropout(),
-            nn.Linear(4096, 4096),
+            nn.Linear(512, 512),
             nn.ReLU(True),
             nn.Dropout(),
-            nn.Linear(4096, num_classes),
+            nn.Linear(512, num_classes),
         )
-        if init_weights:
-            self._initialize_weights()
+        self._initialize_weights()
 
     def forward(self, x):
         x = self.features(x)
-        x = self.avgpool(x)
         x = x.view(x.size(0), -1)
         x = self.classifier(x)
         return x
@@ -57,6 +59,40 @@ class FMD(nn.Module):
                 nn.init.normal_(m.weight, 0, 0.01)
                 nn.init.constant_(m.bias, 0)
 
-fmd = FMD()
+fmd = FMD().cuda().half()
+optimizer = optim.Adam(fmd.parameters(),lr = 0.0003, eps=1e-5)
+criterion = nn.CrossEntropyLoss().cuda().half()
+bar = progressbar.ProgressBar(maxval=len(my_dataloader.test_loader.dataset)/10, \
+    widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
 
+for epoch in range(200):
+    print('----- epoch %d -----'%epoch) 
+    for i, (input_batch, label_batch) in enumerate(my_dataloader.train_loader):
+        fmd = fmd.train()
+        input_batch = input_batch.cuda()
+        label_batch = label_batch.cuda().squeeze()
+        outputs = fmd(input_batch)
+        loss = criterion(outputs, label_batch)
+        optimizer.zero_grad() 
+        loss.backward()
+        optimizer.step()
+        if i % 50 == 0:
+            print('%d, %10.9f'%(i,float(loss.cpu())))
+    torch.save(fmd.state_dict(),'../data/history/check_point%d'%epoch)
 
+    bar.start()
+    fmd = fmd.eval()
+    correct_count = 0
+    sum_count = 0
+    for i, (input_batch, label_batch) in enumerate(my_dataloader.test_loader):
+        input_batch = input_batch.cuda()
+        label_batch = label_batch.cuda().squeeze()
+        outputs = fmd(input_batch)
+        loss = criterion(outputs, label_batch)
+        _, predicted = torch.max(outputs,1)
+        sum_count += 10
+        correct_count += (predicted == label_batch).sum().item()
+        bar.update(i)
+        #print(i,loss.item(),correct_count,correct_count/sum_count)
+    print('testing accurate: %.2f%%'%(correct_count/sum_count*100.0))
+    bar.finish()
