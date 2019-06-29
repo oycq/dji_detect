@@ -1,81 +1,64 @@
 import os
+import glob
 import torch
 from torch.utils.data import Dataset
 from torch.utils import data
 import cv2
 
-file_name_list   = os.listdir('../data/disk')
-label_list       = []
+train_files_list = []
+test_files_list = []
 
-train_index_list = []
-test_index_list  = []
-valid_index_list = []
+categories = [0, 1]
+train_files_in_each_category = []
+short_board_number = 99999999 # caculate this number for samples balance
+for i in range(len(categories)):
+    files = glob.glob('../data/train/%d/*/*'%categories[i])
+    train_files_in_each_category.append(files)
+    if len(files) < short_board_number:
+        short_board_number = len(files) 
+    print('categorie %3d:%7d examples'%(i,len(files)))
+for item in train_files_in_each_category:
+    train_files_list += item[:short_board_number]
+print('Balanced examples:%d'%len(train_files_list))
 
-for file_name in file_name_list:#fill label_list
-    if file_name[6:8] in ['83','85']:
-        label_list.append(torch.tensor([1], dtype=torch.long))
-    if file_name[6:8] in ['86','87']:
-        label_list.append(torch.tensor([0], dtype=torch.long))
-
-for i, file_name in enumerate(file_name_list):#file train,test,valid list
-    if file_name[6:8] in ['83','86']:
-        train_index_list.append(i)
-    if file_name[6:8] in ['85','87']:
-        if int(file_name.split('.')[0].split('_')[1]) % 10 == 0:
-            valid_index_list.append(i)
-        else:
-            test_index_list.append(i)
-
-#check samples balance
-positive_label = 0
-nagative_label = 0
-for index in train_index_list:
-    if label_list[index].numpy() == True:
-        positive_label += 1
-    else:
-        nagative_label += 1
-print('Check samples balance:',positive_label,nagative_label)
-
+test_files_list = glob.glob('../data/test/*/*/*')
 
 class MyDataset(Dataset):
-    def __init__(self, index_list):
-        self.index_list = index_list
+    def __init__(self, files_list):
+        self.files_list = files_list 
 
     def __len__(self):
-        return len(self.index_list)
+        return len(self.files_list)
 
-    def __getitem__(self, pos):
-        X = torch.load('../data/disk/' + file_name_list[self.index_list[pos]])
-        y = label_list[self.index_list[pos]]
-        reframe = X.data.numpy().astype('float32')*255 #test cpu power
-        reframe = reframe.astype('uint8')
-        reframe = reframe.transpose(1,2,0)
+    def __getitem__(self, index):
+        image = cv2.imread(self.files_list[index])
+        X = torch.tensor(image.transpose((2,0,1)) / 255.0, dtype = torch.float16)
+        label = self.files_list[index].split('/')[-3]
+        y = torch.tensor([int(label)], dtype=torch.long)
         return X, y
 
-train_set = MyDataset(train_index_list)
-test_set  = MyDataset(test_index_list)
-valid_set = MyDataset(valid_index_list)
+train_set = MyDataset(train_files_list)
+test_set  = MyDataset(test_files_list)
 
-train_loader = data.DataLoader(train_set, 10, True, num_workers = 12)
-test_loader  = data.DataLoader(test_set , 10, True, num_workers = 12)
-valid_loader = data.DataLoader(valid_set, 10, True, num_workers = 12)
+train_loader = data.DataLoader(train_set, 10, True, num_workers = 6)
+test_loader  = data.DataLoader(test_set , 10, True, num_workers = 6)
+
+if __name__ == '__main__':
+    max_epochs = 1000
+    for i, (input_batch, label_batch) in enumerate(test_loader):
+        print(i)
 
 #if __name__ == '__main__':
 #    max_epochs = 1000
 #    for i, (input_batch, label_batch) in enumerate(train_loader):
-#        print(i)
-
-if __name__ == '__main__':
-    max_epochs = 1000
-    for i, (input_batch, label_batch) in enumerate(train_loader):
-        raw = input_batch[0]
-        reframe = raw.data.numpy().astype('float32')*255
-        reframe = reframe.astype('uint8')
-        reframe = reframe.transpose(1,2,0)
-        print(raw.shape,str(label_batch[0].numpy()[0]))
-        cv2.imshow(str(label_batch[0].numpy()[0]),reframe)
-        return_key = cv2.waitKey(0)
-        if return_key == ord(' '):
-            pass
-        if return_key == ord('q'):
-            break
+#        raw = input_batch[0]
+#        reframe = raw.data.numpy().astype('float32')*255
+#        reframe = reframe.astype('uint8')
+#        reframe = reframe.transpose(1,2,0)
+#        print(raw.shape,str(label_batch[0].numpy()[0]))
+#        cv2.imshow(str(label_batch[0].numpy()[0]),reframe)
+#        return_key = cv2.waitKey(0)
+#        if return_key == ord(' '):
+#            pass
+#        if return_key == ord('q'):
+#            break

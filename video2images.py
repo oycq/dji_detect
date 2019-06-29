@@ -4,10 +4,13 @@ import progressbar
 import os
 
 missions =[
-        ['../data/mp4/GH010083.MP4'         ,'../data/train/1'       ],
-        ['../data/mp4/GH010085.MP4'         ,'../data/test/1'       ],
-        ['../data/mp4/GH010086.MP4'         ,'../data/train/0'       ],
-        ['../data/mp4/GH010087.MP4'         ,'../data/test/0'       ]
+#        ['../data/mp4/GH010083.MP4'         ,'../data/train/1'       ],
+#        ['../data/mp4/GH010085.MP4'         ,'../data/test/1'       ],
+#        ['../data/mp4/GH010086.MP4'         ,'../data/train/0'       ],
+#        ['../data/mp4/GH010087.MP4'         ,'../data/test/0'       ],
+        ['../data/mp4/GH010092.MP4'         ,'../data/train/1'       ],
+        ['../data/mp4/GH010093.MP4'         ,'../data/train/0'       ],
+        ['../data/mp4/GH010096.MP4'         ,'../data/train/0'       ]
           ]
 
 for mission in missions:

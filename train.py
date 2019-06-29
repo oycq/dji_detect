@@ -67,32 +67,40 @@ bar = progressbar.ProgressBar(maxval=len(my_dataloader.test_loader.dataset)/10, 
 
 for epoch in range(200):
     print('----- epoch %d -----'%epoch) 
+    correct_count = 0
+    sum_count = 0
     for i, (input_batch, label_batch) in enumerate(my_dataloader.train_loader):
         fmd = fmd.train()
         input_batch = input_batch.cuda()
         label_batch = label_batch.cuda().squeeze()
         outputs = fmd(input_batch)
+        _, predicted = torch.max(outputs,1)
+        sum_count += 10
+        correct_count += (predicted == label_batch).sum().item()
         loss = criterion(outputs, label_batch)
         optimizer.zero_grad() 
         loss.backward()
         optimizer.step()
         if i % 50 == 0:
-            print('%d, %10.9f'%(i,float(loss.cpu())))
-    torch.save(fmd.state_dict(),'../data/history/check_point%d'%epoch)
+            print('%d, %10.9f %.2f%%'%(i,float(loss.cpu()),correct_count/sum_count*100.0))
+            correct_count = 0
+            sum_count = 0
+        if i % 1000 == 0:
+            torch.save(fmd.state_dict(),'../data/history/check_point%d'%epoch)
+            bar.start()
+            fmd = fmd.eval()
+            for i, (input_batch, label_batch) in enumerate(my_dataloader.test_loader):
+                input_batch = input_batch.cuda()
+                label_batch = label_batch.cuda().squeeze()
+                outputs = fmd(input_batch)
+                loss = criterion(outputs, label_batch)
+                _, predicted = torch.max(outputs,1)
+                sum_count += 10
+                correct_count += (predicted == label_batch).sum().item()
+                bar.update(i)
+                #print(i,loss.item(),correct_count,correct_count/sum_count)
+            print('testing accurate: %.2f%%'%(correct_count/sum_count*100.0))
+            bar.finish()
+            correct_count = 0
+            sum_count = 0
 
-    bar.start()
-    fmd = fmd.eval()
-    correct_count = 0
-    sum_count = 0
-    for i, (input_batch, label_batch) in enumerate(my_dataloader.test_loader):
-        input_batch = input_batch.cuda()
-        label_batch = label_batch.cuda().squeeze()
-        outputs = fmd(input_batch)
-        loss = criterion(outputs, label_batch)
-        _, predicted = torch.max(outputs,1)
-        sum_count += 10
-        correct_count += (predicted == label_batch).sum().item()
-        bar.update(i)
-        #print(i,loss.item(),correct_count,correct_count/sum_count)
-    print('testing accurate: %.2f%%'%(correct_count/sum_count*100.0))
-    bar.finish()
