@@ -1,11 +1,11 @@
 import torch
-import cv2
-import time
+import os
 import progressbar
 from torchsummary import summary
 import torch.nn as nn
 import test_dataloader as my_dataloader
 import torch.optim as optim
+import datetime
 from torch.autograd import Variable
 
 cfg = [8, 'M', 16, 'M', 32, 'M', 64, 'M', 32, 'M', 16, 'M', 8, 'M']
@@ -61,46 +61,52 @@ class FMD(nn.Module):
                 nn.init.normal_(m.weight, 0, 0.01)
                 nn.init.constant_(m.bias, 0)
 
-fmd = torch.load('../data/history/2019-06-29 19:50:08.959834/0:5000') 
-fmd.eval()
-fmd = fmd.cuda().half()
-progress = progressbar.ProgressBar(maxval=len(my_dataloader.test_loader.dataset)/10, \
+fmd = FMD().cuda().half()
+optimizer = optim.Adam(fmd.parameters(),lr = 0.0003, eps=1e-5)
+criterion = nn.CrossEntropyLoss().cuda().half()
+bar = progressbar.ProgressBar(maxval=len(my_dataloader.test_loader.dataset)/10, \
     widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
 
-total_count = 0
-total_correct_count = 0
-aaa = [0,0,0]
-
-progress.start()
-for i, (input_batch, label_batch) in enumerate(my_dataloader.test_loader):
-    input_batch = input_batch.cuda()
-    input_batch = input_batch.half() / 255 
-    label_batch = label_batch.cuda().squeeze()
-    outputs = fmd(input_batch)
-    _, predicted = torch.max(outputs,1)
-    for j in range(3):
-        aaa[j] += (predicted == j).sum()
-    predicted = (predicted >= 1)
-    label_batch = (label_batch >= 1)
-    incorrect_count = (predicted != label_batch).sum().item() 
-#    if incorrect_count == 0:
-#        continue
-#    input_rwt_error = input_batch[predicted != label_batch] * 255
-#    label_rwt_error = predicted[predicted != label_batch]
-#    input_rwt_error = input_rwt_error.cpu().numpy().astype('uint8').transpose((0,2,3,1))
-#    cv2.imshow(str(label_rwt_error[0].item()),input_rwt_error[0])
-#    return_key = cv2.waitKey(0)
-#    if return_key == ord(' '):
-#        pass
-#    if return_key == ord('q'):
-#        break
-#    print(incorrect_count)
-    total_count += 10
-    total_correct_count += 10 - incorrect_count
-    progress.update(i)
-progress.finish()
-print('finished')
-print(aaa)
-print('total:%d correct:%.2f%%'%(total_count,total_correct_count/total_count*100))
-
+history_directory = '../data/history/%s'%datetime.datetime.now()
+os.mkdir(history_directory)
+for epoch in range(200):
+    print('----- epoch %d -----'%epoch) 
+    correct_count = 0
+    sum_count = 0
+    for i, (input_batch, label_batch) in enumerate(my_dataloader.train_loader):
+        fmd = fmd.train()
+        input_batch = input_batch.cuda()
+        input_batch = input_batch.half() / 255
+        label_batch = label_batch.cuda().squeeze()
+        outputs = fmd(input_batch)
+        _, predicted = torch.max(outputs,1)
+        sum_count += 10
+        correct_count += (predicted == label_batch).sum().item()
+        loss = criterion(outputs, label_batch)
+        optimizer.zero_grad() 
+        loss.backward()
+        optimizer.step()
+        if i % 100 == 0:
+            print('%d, %10.9f %.2f%%'%(i,float(loss.cpu()),correct_count/sum_count*100.0))
+            correct_count = 0
+            sum_count = 0
+        if i % 1000 == 0:
+            torch.save(fmd,'%s/%d:%d'%(history_directory,epoch,i))
+            bar.start()
+            fmd = fmd.eval()
+            for i, (input_batch, label_batch) in enumerate(my_dataloader.test_loader):
+                input_batch = input_batch.cuda()
+                input_batch = input_batch.half() / 255
+                label_batch = label_batch.cuda().squeeze()
+                outputs = fmd(input_batch)
+                loss = criterion(outputs, label_batch)
+                _, predicted = torch.max(outputs,1)
+                sum_count += 10
+                correct_count += (predicted == label_batch).sum().item()
+                bar.update(i)
+                #print(i,loss.item(),correct_count,correct_count/sum_count)
+            print('testing accurate: %.2f%%'%(correct_count/sum_count*100.0))
+            bar.finish()
+            correct_count = 0
+            sum_count = 0
 
