@@ -2,7 +2,7 @@ import torch
 import progressbar
 from torchsummary import summary
 import torch.nn as nn
-import my_dataloader
+import test_loader as my_dataloader
 import torch.optim as optim
 from torch.autograd import Variable
 
@@ -59,48 +59,20 @@ class FMD(nn.Module):
                 nn.init.normal_(m.weight, 0, 0.01)
                 nn.init.constant_(m.bias, 0)
 
-fmd = FMD().cuda().half().load_state_dict('../data/history/check_point12')
+fmd = FMD().cuda().half()
+fmd.load_state_dict(torch.load('../data/history/check_point12'))
 optimizer = optim.Adam(fmd.parameters(),lr = 0.0003, eps=1e-5)
 criterion = nn.CrossEntropyLoss().cuda().half()
 bar = progressbar.ProgressBar(maxval=len(my_dataloader.test_loader.dataset)/10, \
     widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
 
-for epoch in range(200):
-    print('----- epoch %d -----'%epoch) 
-    correct_count = 0
-    sum_count = 0
-    for i, (input_batch, label_batch) in enumerate(my_dataloader.train_loader):
-        fmd = fmd.train()
-        input_batch = input_batch.cuda()
-        label_batch = label_batch.cuda().squeeze()
-        outputs = fmd(input_batch)
-        _, predicted = torch.max(outputs,1)
-        sum_count += 10
-        correct_count += (predicted == label_batch).sum().item()
-        loss = criterion(outputs, label_batch)
-        optimizer.zero_grad() 
-        loss.backward()
-        optimizer.step()
-        if i % 50 == 0:
-            print('%d, %10.9f %.2f%%'%(i,float(loss.cpu()),correct_count/sum_count*100.0))
-            correct_count = 0
-            sum_count = 0
-        if i % 1000 == 0:
-            torch.save(fmd.state_dict(),'../data/history/1/check_point%d'%epoch)
-            bar.start()
-            fmd = fmd.eval()
-            for i, (input_batch, label_batch) in enumerate(my_dataloader.test_loader):
-                input_batch = input_batch.cuda()
-                label_batch = label_batch.cuda().squeeze()
-                outputs = fmd(input_batch)
-                loss = criterion(outputs, label_batch)
-                _, predicted = torch.max(outputs,1)
-                sum_count += 10
-                correct_count += (predicted == label_batch).sum().item()
-                bar.update(i)
-                #print(i,loss.item(),correct_count,correct_count/sum_count)
-            print('testing accurate: %.2f%%'%(correct_count/sum_count*100.0))
-            bar.finish()
-            correct_count = 0
-            sum_count = 0
+for i, (input_batch, label_batch) in enumerate(my_dataloader.test_loader):
+    input_batch = input_batch.cuda().half() / 255
+    label_batch = label_batch.cuda().squeeze()
+    outputs = fmd(input_batch)
+    loss = criterion(outputs, label_batch)
+    _, predicted = torch.max(outputs,1)
+    input_rwt_error = input_batch[predicted != label_batch].float().cpu()
+    print(input_rwt_error.shape,predicted != label_batch)
+
 

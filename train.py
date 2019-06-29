@@ -2,7 +2,7 @@ import torch
 import progressbar
 from torchsummary import summary
 import torch.nn as nn
-import my_dataloader
+import test_loader as my_dataloader
 import torch.optim as optim
 from torch.autograd import Variable
 
@@ -72,6 +72,7 @@ for epoch in range(200):
     for i, (input_batch, label_batch) in enumerate(my_dataloader.train_loader):
         fmd = fmd.train()
         input_batch = input_batch.cuda()
+        input_batch = input_batch.half() / 255
         label_batch = label_batch.cuda().squeeze()
         outputs = fmd(input_batch)
         _, predicted = torch.max(outputs,1)
@@ -86,11 +87,12 @@ for epoch in range(200):
             correct_count = 0
             sum_count = 0
         if i % 1000 == 0:
-            torch.save(fmd.state_dict(),'../data/history/check_point%d'%epoch)
+            torch.save(fmd.state_dict(),'../data/history/1/check_point%d'%epoch)
             bar.start()
             fmd = fmd.eval()
             for i, (input_batch, label_batch) in enumerate(my_dataloader.test_loader):
                 input_batch = input_batch.cuda()
+                input_batch = input_batch.half() / 255
                 label_batch = label_batch.cuda().squeeze()
                 outputs = fmd(input_batch)
                 loss = criterion(outputs, label_batch)
