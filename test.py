@@ -1,8 +1,10 @@
 import torch
+import cv2
+import time
 import progressbar
 from torchsummary import summary
 import torch.nn as nn
-import test_loader as my_dataloader
+import my_dataloader
 import torch.optim as optim
 from torch.autograd import Variable
 
@@ -66,13 +68,26 @@ criterion = nn.CrossEntropyLoss().cuda().half()
 bar = progressbar.ProgressBar(maxval=len(my_dataloader.test_loader.dataset)/10, \
     widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
 
-for i, (input_batch, label_batch) in enumerate(my_dataloader.test_loader):
-    input_batch = input_batch.cuda().half() / 255
+for i, (input_batch, label_batch) in enumerate(my_dataloader.train_loader):
+    input_batch = input_batch.cuda()
+    input_batch = input_batch.half() / 255 
     label_batch = label_batch.cuda().squeeze()
     outputs = fmd(input_batch)
     loss = criterion(outputs, label_batch)
     _, predicted = torch.max(outputs,1)
-    input_rwt_error = input_batch[predicted != label_batch].float().cpu()
-    print(input_rwt_error.shape,predicted != label_batch)
+    incorrect_count = (predicted != label_batch).sum().item() 
+    if incorrect_count == 0:
+        continue
+    input_rwt_error = input_batch[predicted != label_batch] * 255
+    label_rwt_error = predicted[predicted != label_batch]
+    input_rwt_error = input_rwt_error.cpu().numpy().astype('uint8').transpose((0,2,3,1))
+    cv2.imshow(str(label_rwt_error[0].item()),input_rwt_error[0])
+    return_key = cv2.waitKey(0)
+    if return_key == ord(' '):
+        pass
+    if return_key == ord('q'):
+        break
+
+    print(incorrect_count)
 
 

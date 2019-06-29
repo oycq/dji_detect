@@ -1,4 +1,5 @@
 import os
+import time
 import glob
 import torch
 from torch.utils.data import Dataset
@@ -32,7 +33,9 @@ class MyDataset(Dataset):
 
     def __getitem__(self, index):
         image = cv2.imread(self.files_list[index])
-        X = torch.tensor(image.transpose((2,0,1)) / 255.0, dtype = torch.float16)
+        X = torch.tensor(image.transpose((2,0,1)))
+        #X = X / 255
+        #X = X.half()
         label = self.files_list[index].split('/')[-3]
         y = torch.tensor([int(label)], dtype=torch.long)
         return X, y
@@ -40,8 +43,8 @@ class MyDataset(Dataset):
 train_set = MyDataset(train_files_list)
 test_set  = MyDataset(test_files_list)
 
-train_loader = data.DataLoader(train_set, 10, True, num_workers = 6)
-test_loader  = data.DataLoader(test_set , 10, True, num_workers = 6)
+train_loader = data.DataLoader(train_set, 10, True, num_workers = 5)
+test_loader  = data.DataLoader(test_set , 10, True, num_workers = 5)
 
 if __name__ == '__main__':
     max_epochs = 1000

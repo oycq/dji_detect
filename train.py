@@ -2,7 +2,7 @@ import torch
 import progressbar
 from torchsummary import summary
 import torch.nn as nn
-import test_loader as my_dataloader
+import my_dataloader
 import torch.optim as optim
 from torch.autograd import Variable
 

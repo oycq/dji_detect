@@ -8,9 +8,13 @@ missions =[
 #        ['../data/mp4/GH010085.MP4'         ,'../data/test/1'       ],
 #        ['../data/mp4/GH010086.MP4'         ,'../data/train/0'       ],
 #        ['../data/mp4/GH010087.MP4'         ,'../data/test/0'       ],
-        ['../data/mp4/GH010092.MP4'         ,'../data/train/1'       ],
-        ['../data/mp4/GH010093.MP4'         ,'../data/train/0'       ],
-        ['../data/mp4/GH010096.MP4'         ,'../data/train/0'       ]
+#        ['../data/mp4/GH010092.MP4'         ,'../data/train/1'       ],
+#        ['../data/mp4/GH010093.MP4'         ,'../data/train/0'       ],
+        ['../data/mp4/GH010097.MP4'         ,'../data/train/2'       ],
+        ['../data/mp4/GH010113.MP4'         ,'../data/train/2'       ],
+        ['../data/mp4/GH010114.MP4'         ,'../data/train/2'       ],
+        ['../data/mp4/GH010115.MP4'         ,'../data/train/2'       ],
+        ['../data/mp4/GH010116.MP4'         ,'../data/train/2'       ]
           ]
 
 for mission in missions:
