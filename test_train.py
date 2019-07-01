@@ -69,8 +69,10 @@ bar = progressbar.ProgressBar(maxval=len(my_dataloader.test_loader.dataset)/10, 
 
 history_directory = '../data/history/%s'%datetime.datetime.now()
 os.mkdir(history_directory)
+log_file = open(history_directory + '/log.txt', 'w+')
 for epoch in range(200):
     print('----- epoch %d -----'%epoch) 
+    log_file.write('----- epoch %d -----\n')
     correct_count = 0
     sum_count = 0
     for i, (input_batch, label_batch) in enumerate(my_dataloader.train_loader):
@@ -86,8 +88,9 @@ for epoch in range(200):
         optimizer.zero_grad() 
         loss.backward()
         optimizer.step()
-        if i % 100 == 0:
+        if i % 50 == 0:
             print('%d, %10.9f %.2f%%'%(i,float(loss.cpu()),correct_count/sum_count*100.0))
+            log_file.write('%d, %10.9f %.2f%%\n'%(i,float(loss.cpu()),correct_count/sum_count*100.0))
             correct_count = 0
             sum_count = 0
         if i % 1000 == 0:
@@ -106,6 +109,7 @@ for epoch in range(200):
                 bar.update(i)
                 #print(i,loss.item(),correct_count,correct_count/sum_count)
             print('testing accurate: %.2f%%'%(correct_count/sum_count*100.0))
+            log_file.write('testing accurate: %.2f%%\n'%(correct_count/sum_count*100.0))
             bar.finish()
             correct_count = 0
             sum_count = 0

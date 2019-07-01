@@ -43,8 +43,8 @@ class MyDataset(Dataset):
 train_set = MyDataset(train_files_list)
 test_set  = MyDataset(test_files_list)
 
-train_loader = data.DataLoader(train_set, 10, True, num_workers = 5)
-test_loader  = data.DataLoader(test_set , 10, True, num_workers = 5)
+train_loader = data.DataLoader(train_set, 10, True, num_workers = 5, drop_last=True)
+test_loader  = data.DataLoader(test_set , 10, True, num_workers = 5, drop_last=True)
 
 if __name__ == '__main__':
     max_epochs = 1000

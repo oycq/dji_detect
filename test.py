@@ -61,7 +61,7 @@ class FMD(nn.Module):
                 nn.init.normal_(m.weight, 0, 0.01)
                 nn.init.constant_(m.bias, 0)
 
-fmd = torch.load('../data/history/2019-06-29 19:50:08.959834/0:5000') 
+fmd = torch.load('../data/history/2019-06-30 10:16:25.401992/7:4000') 
 fmd.eval()
 fmd = fmd.cuda().half()
 progress = progressbar.ProgressBar(maxval=len(my_dataloader.test_loader.dataset)/10, \
