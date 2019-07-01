@@ -9,7 +9,7 @@ import cv2
 train_files_list = []
 test_files_list = []
 
-categories = [0, 1]
+categories = [0, 1, 2]
 train_files_in_each_category = []
 short_board_number = 99999999 # caculate this number for samples balance
 for i in range(len(categories)):
@@ -43,8 +43,8 @@ class MyDataset(Dataset):
 train_set = MyDataset(train_files_list)
 test_set  = MyDataset(test_files_list)
 
-train_loader = data.DataLoader(train_set, 10, True, num_workers = 5)
-test_loader  = data.DataLoader(test_set , 10, True, num_workers = 5)
+train_loader = data.DataLoader(train_set, 10, True, num_workers = 5, drop_last=True)
+test_loader  = data.DataLoader(test_set , 10, True, num_workers = 5, drop_last=True)
 
 if __name__ == '__main__':
     max_epochs = 1000
