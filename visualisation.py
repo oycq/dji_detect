@@ -56,6 +56,9 @@ def foward(file_name):
             modules_output[-1].append(reframe)
     x = x.view(x.size(0), -1)
     x = model.classifier(x)
+    _, predicted = torch.max(x, 1)
+    print(_, predicted)
+
     #print(x[0].float().cpu().detach().numpy())
 
 def update_visualization_window():

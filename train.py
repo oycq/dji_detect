@@ -46,7 +46,7 @@ for epoch in range(200):
             model = model.eval()
             for i, (input_batch, label_batch) in enumerate(my_dataloader.test_loader):
                 input_batch = input_batch.cuda()
-                input_batch = input_batch.half() / 255
+                input_batch = input_batch.half()
                 label_batch = label_batch.cuda().squeeze()
                 outputs = model(input_batch)
                 loss = criterion(outputs, label_batch)

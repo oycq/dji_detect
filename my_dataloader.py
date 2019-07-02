@@ -4,6 +4,7 @@ import glob
 import torch
 from torch.utils.data import Dataset
 from torch.utils import data
+import torchvision
 import cv2
 
 train_files_list = []
@@ -33,9 +34,10 @@ class MyDataset(Dataset):
 
     def __getitem__(self, index):
         image = cv2.imread(self.files_list[index])
-        X = torch.tensor(image.transpose((2,0,1)))
-        #X = X / 255
-        #X = X.half()
+        X = torch.tensor(image.transpose((2,0,1)), dtype = torch.float)
+        X = X / 255
+        X = torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                     std=[0.229, 0.224, 0.225])(X)
         label = self.files_list[index].split('/')[-3]
         y = torch.tensor([int(label)], dtype=torch.long)
         return X, y
