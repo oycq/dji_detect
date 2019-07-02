@@ -12,6 +12,7 @@ import tkinter as tk
 from my_model import Model as FMD
 from torchvision.models import vgg
 import threading
+import imagenet1000
 
 model = torchvision.models.vgg16_bn()
 model.load_state_dict(torch.load('../data/vgg16_bn-6c64b313.pth'))
@@ -40,29 +41,30 @@ def foward(file_name):
     image = cv2.imread(file_name)
     image = cv2.resize(image, (224,224))
     cv2.imshow('ori', image)
+
+    image = cv2.cvtColor(image,cv2.COLOR_BGR2RGB)
     cv2.waitKey(10)
-    image = torch.tensor(image.transpose((2,0,1)),dtype = torch.float) / 255
+    image = torch.tensor(image.transpose((2,0,1)),dtype = torch.float).cuda()
+    image = image / 255
     image = torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])(image)
 
     x = image.unsqueeze(0)
-    x = x.half().cuda()
+    x = x.half() 
     for i in range(len(model.features)):
-        modules_output.append([])
         modules_name.append(model.features[i].__class__.__name__)
         x = model.features[i](x)
-        for j in range(x.shape[1]):
-            reframe = (x[0][j]*255).float().cpu().detach().numpy().astype('uint8')
-            modules_output[-1].append(reframe)
+        modules_output.append(x[0])
     x = x.view(x.size(0), -1)
     x = model.classifier(x)
     _, predicted = torch.max(x, 1)
-    print(_, predicted)
+    print(imagenet1000.d[predicted.item()])
 
     #print(x[0].float().cpu().detach().numpy())
 
 def update_visualization_window():
-    image = modules_output[module_id][channel_id]
+    image = modules_output[module_id][channel_id].float() * 255
+    image = image.cpu().detach().numpy().astype('uint8')
     image = cv2.resize(image, (1792,1792), interpolation= cv2.INTER_NEAREST)
     cv2.imshow('output', image)
     cv2.waitKey(20)
@@ -93,6 +95,7 @@ def change_channel(plus):
     global channel_id, channel_name
     if plus == 1:
         channel_id = (channel_id + 1) % len(modules_output[module_id])
+        print(len(modules_output[module_id]))
     else:
         channel_id = (channel_id - 1) % len(modules_output[module_id])
     channel_name.set(str(channel_id))
