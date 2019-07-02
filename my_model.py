@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-cfg = [8, 'M', 16, 'M', 32, 'M', 64, 'M', 32, 'M', 16, 'M', 8, 'M']
+cfg = [8, 'M', 16, 'M', 32, 'M', 64, 'M', 128, 'M', 128, 'M', 128, 'M']
 num_classes = 3 
 
 class Model(nn.Module):
@@ -10,7 +10,7 @@ class Model(nn.Module):
         super(Model, self).__init__()
         self.features = self._make_layers(cfg, batch_norm=True)
         self.classifier = nn.Sequential(
-            nn.Linear(8 * 15 * 10, 512),
+            nn.Linear(128 * 15 * 10, 512),
             nn.ReLU(True),
             nn.Dropout(),
             nn.Linear(512, 512),
