@@ -1,4 +1,5 @@
 import torch
+import torchvision
 import glob
 import cv2
 import time
@@ -12,13 +13,15 @@ from my_model import Model as FMD
 from torchvision.models import vgg
 import threading
 
-model = torch.load('../data/history/2019-06-30 10:16:25.401992/7:0') 
+model = torchvision.models.vgg16_bn()
+model.load_state_dict(torch.load('../data/vgg16_bn-6c64b313.pth'))
+model.cuda().half()
 model.eval()
-model = model.cuda().half()
 print(model)
 #summary(model, (3, 1920, 1280))
 
-image_list = glob.glob("../data/test/1/GH010085/*")
+#image_list = glob.glob("../data/test/1/GH010085/*")
+image_list = glob.glob("../../Downloads/test1/*")
 image_id = 0
 module_id = 0
 channel_id = 0
@@ -35,10 +38,14 @@ def foward(file_name):
     modules_output = []
     modules_name = []
     image = cv2.imread(file_name)
+    image = cv2.resize(image, (224,224))
     cv2.imshow('ori', image)
     cv2.waitKey(10)
-    x = torch.tensor(image.transpose((2,0,1))).unsqueeze(0)
-    x = x / 255
+    image = torch.tensor(image.transpose((2,0,1)),dtype = torch.float) / 255
+    image = torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                     std=[0.229, 0.224, 0.225])(image)
+
+    x = image.unsqueeze(0)
     x = x.half().cuda()
     for i in range(len(model.features)):
         modules_output.append([])
@@ -49,11 +56,11 @@ def foward(file_name):
             modules_output[-1].append(reframe)
     x = x.view(x.size(0), -1)
     x = model.classifier(x)
-    print(x[0].float().cpu().detach().numpy())
+    #print(x[0].float().cpu().detach().numpy())
 
 def update_visualization_window():
     image = modules_output[module_id][channel_id]
-    image = cv2.resize(image, (1920,1280), interpolation= cv2.INTER_NEAREST)
+    image = cv2.resize(image, (1792,1792), interpolation= cv2.INTER_NEAREST)
     cv2.imshow('output', image)
     cv2.waitKey(20)
 
