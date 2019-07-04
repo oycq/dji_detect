@@ -10,8 +10,10 @@ from torchvision.models import vgg
 import threading
 import imagenet1000
 import numpy as np 
+import glob
 
-cap = cv2.VideoCapture(0)
+#path = "../../Downloads/test1/*"
+path = 'webcam0'
 
 model = torchvision.models.vgg16_bn()
 model.load_state_dict(torch.load('../data/vgg16_bn-6c64b313.pth'))
@@ -39,6 +41,33 @@ for i in range(len(model.features)):
     modules_name.append(model.features[i].__class__.__name__)
 
 module_name = '[' +str(module_id) + ']' + modules_name[module_id]
+
+class imageFeeder():
+    def __init__(self, path = 'webcam'):
+        if path[0:6] == 'webcam':
+            self.cap = cv2.VideoCapture(int(path[-1]))
+            print('ok')
+            self.type = 'webcam'
+        else:
+            self.image_list = glob.glob("../../Downloads/test1/*")
+            self.type = 'images'
+            self.image_pointer = 0
+
+    def read(self):
+        if self.type == 'webcam':
+            _, image = self.cap.read()
+            image = cv2.flip(image[16:464,96:544],1)
+            image = cv2.resize(image, (224,224))
+            return image
+        if self.type == 'images':
+            image = cv2.imread(self.image_list[self.image_pointer])
+            image = cv2.resize(image, (224,224))
+            return image
+    
+    def next(self):
+        if self.type == 'images':
+            self.image_pointer = (self.image_pointer + 1) % len(self.image_list)
+feeder = imageFeeder(path)
 
 def change_module(plus):
     global module_id, module_name, channel_id
@@ -88,10 +117,8 @@ def show_page():
         
 while(1):
     t_start = time.time()*1000
-    _, image = cap.read()
-    image = cv2.flip(image[16:464,96:544],1)
+    image = feeder.read()
     cv2.imshow('frame',cv2.resize(image,(896,896)))
-    image = cv2.resize(image, (224,224))
     image = torch.tensor(image.transpose((2,0,1)), dtype = torch.float).cuda()#....
     image = image / 255
     image = torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406],
@@ -129,5 +156,8 @@ while(1):
         change_page(0)
     if key == ord('d'):
         change_page(1)
+    if key == ord(' '):
+        feeder.next()
+
 
     #print("%40s %5d"%(module_name,channel_id))
