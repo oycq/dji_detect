@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-cfg = [8, 'M', 8, 'M', 8, 'M', 8, 'M', 4, 'M', 2, 'M', 1, 'M']
+cfg = [8, 'M', 16, 'M', 32, 'M', 64, 'M', 32, 'M', 16, 'M', 8, 'M']
 num_classes = 3 
 
 class Model(nn.Module):

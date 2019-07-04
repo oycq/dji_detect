@@ -11,25 +11,42 @@ import threading
 import imagenet1000
 import numpy as np 
 import glob
+import my_model
+from my_model import Model as FMD
 
-config = {
-        'path' : '../data/mp4/GH010083.MP4',
-        #'path' : '../../Downloads/test1/*',
+
+config1 = {
+        'path' : '../../Downloads/test1/*',
+        #'path' : '0',
         'page_rows' : 16,
         'page_cols' : 16,
         'box_size' : [0, 0],
         'image_size' : (112, 112),
         'input_size' : (224, 224),
-        'enlarged_size' : (896,920)
+        'enlarged_size' : (896,896),
+        'pix_k': 42,
         }
+config2 = {
+#        'path' : '../data/mp4/GH010083.MP4',
+        'path' : '../data/mp4/GH010092.MP4',
+        'page_rows' : 4,
+        'page_cols' : 4,
+        'box_size' : [0, 0],
+        'image_size' : (600, 400),
+        'input_size' : (1920, 1280),
+        'enlarged_size' : (960,640),
+        'pix_k': 20,
+        }
+config = config2
+#model = torchvision.models.vgg16_bn()
+#model.load_state_dict(torch.load('../data/vgg16_bn-6c64b313.pth'))
+model = torch.load('../data/history/2019-06-30 10:16:25.401992/7:4000')
+model.cuda().half()
+model.eval()
+
 for i in range(2):
     if config['box_size'][i] == 0: 
         config['box_size'][i] = int(config['image_size'][i] * 1.1)
-
-model = torchvision.models.vgg16_bn()
-model.load_state_dict(torch.load('../data/vgg16_bn-6c64b313.pth'))
-model.cuda().half()
-model.eval()
 
 module_id = 0
 module_name = '' 
@@ -72,7 +89,7 @@ class imageFeeder():
 
     def read(self):
         if self.type == 'video':
-            for i in range(30):
+            while(1):
                 status, image = self.cap.read()
                 if status == True:
                     break
@@ -121,9 +138,9 @@ def show_page():
     page[:,:] = 255
 
     if 'ReLU' in modules_name[module_id] or 'Norm' in modules_name[module_id]:
-        temp = modules_output[module_id] * 85
+        temp = modules_output[module_id] * config['pix_k'] * 2
     else:
-        temp = modules_output[module_id] * 42 + 128
+        temp = modules_output[module_id] * config['pix_k'] + 128
     image_list_np = temp.cpu().detach().numpy().astype('uint8')
 
     for i in range(config['page_rows'] * config['page_cols']):
