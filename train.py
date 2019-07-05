@@ -8,12 +8,15 @@ import my_dataloader
 import torch.optim as optim
 import datetime
 import wandb
+
 wandb.init()
 
 batch_size = my_dataloader.batch_size
 model = my_model.Model().cuda().half()
+#model.load_state_dict(torch.load('../data/history/2019-07-05 23:06:52.980294/0:1800'))
 model.train()
 optimizer = optim.Adam(model.parameters(),lr = 0.0003, eps=1e-5)
+#optimizer.load_state_dict(torch.load('../data/history/2019-07-05 23:06:52.980294/0:1800.adam'))
 criterion = nn.CrossEntropyLoss().cuda().half()
 bar = progressbar.ProgressBar(maxval=len(my_dataloader.test_loader.dataset)/batch_size, \
     widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
@@ -23,9 +26,8 @@ os.mkdir(history_directory)
 
 def test():
     global model
-    torch.cuda.empty_cache()
     bar.start()
-    model.eval()
+    model = model.eval()
     correct_count = 0 
     sum_count = 0
     for j, (input_batch, label_batch) in enumerate(my_dataloader.test_loader):
@@ -43,21 +45,21 @@ def test():
         torch.cuda.empty_cache()
 #        torch.cuda.empty_cache()
     bar.finish()
-    model.train()
+    model = model.train()
     return correct_count / sum_count * 100
 
 
 for epoch in range(200):
     print('----- epoch %d -----'%epoch) 
     for i, (input_batch, label_batch) in enumerate(my_dataloader.train_loader):
-        torch.cuda.empty_cache()
+        print("%6d"%i,end = '\r')
         input_batch = input_batch.cuda()
         input_batch = input_batch.half() / 255
         label_batch = label_batch.cuda().squeeze()
         loss_1, outputs = model(input_batch)
         _, predicted = torch.max(outputs,1)
         loss = criterion(outputs, label_batch)
-        L = loss + loss_1
+        L = loss + loss_1 / 5
         optimizer.zero_grad() 
         L.backward()
         optimizer.step()
@@ -68,10 +70,13 @@ for epoch in range(200):
                    'train_loss_1':loss_1.item(),
                    'train_L':L.item(),
                    'train_accuracy':(predicted == label_batch).sum().item()/batch_size*100.0})
-        del input_batch,loss_1,outputs,_,predicted,loss
-        print("%6d"%i,end = '\r')
-        if i % 200 == 0:
-            torch.save(model,'%s/%d:%d'%(history_directory,epoch,i))
+        del input_batch,loss_1,outputs,_,predicted,loss,L
+        torch.cuda.empty_cache()
+        if i % 500 == 0:
+            torch.save(model.state_dict(),'%s/%d:%d.model'%(history_directory,epoch,i))
+            torch.save(optimizer.state_dict(),'%s/%d:%d.adam'%(history_directory,epoch,i))
+            os.system('cp *.py "%s"'%history_directory)
             test_accuracy = test()
+            print("test_accuracy: %.2f"%test_accuracy)
             wandb.log({'test_accuracy':test_accuracy})
 
