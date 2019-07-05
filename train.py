@@ -8,10 +8,11 @@ import my_dataloader
 import torch.optim as optim
 import datetime
 
+batch_size = 5 
 model = my_model.Model().cuda().half()
 optimizer = optim.Adam(model.parameters(),lr = 0.0003, eps=1e-5)
 criterion = nn.CrossEntropyLoss().cuda().half()
-bar = progressbar.ProgressBar(maxval=len(my_dataloader.test_loader.dataset)/10, \
+bar = progressbar.ProgressBar(maxval=len(my_dataloader.test_loader.dataset)/batch_size, \
     widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
 
 history_directory = '../data/history/%s'%datetime.datetime.now()
@@ -27,11 +28,11 @@ for epoch in range(200):
         input_batch = input_batch.cuda()
         input_batch = input_batch.half() / 255
         label_batch = label_batch.cuda().squeeze()
-        outputs = model(input_batch)
+        loss_1, outputs = model(input_batch)
         _, predicted = torch.max(outputs,1)
-        sum_count += 10
+        sum_count += batch_size
         correct_count += (predicted == label_batch).sum().item()
-        loss = criterion(outputs, label_batch)
+        loss = criterion(outputs, label_batch) + loss_1
         optimizer.zero_grad() 
         loss.backward()
         optimizer.step()
@@ -46,12 +47,12 @@ for epoch in range(200):
             model = model.eval()
             for i, (input_batch, label_batch) in enumerate(my_dataloader.test_loader):
                 input_batch = input_batch.cuda()
-                input_batch = input_batch.half() / 255
+                input_batch = input_batch.half()
                 label_batch = label_batch.cuda().squeeze()
-                outputs = model(input_batch)
+                loss_1, outputs = model(input_batch)
                 loss = criterion(outputs, label_batch)
                 _, predicted = torch.max(outputs,1)
-                sum_count += 10
+                sum_count += batch_size
                 correct_count += (predicted == label_batch).sum().item()
                 bar.update(i)
                 #print(i,loss.item(),correct_count,correct_count/sum_count)
