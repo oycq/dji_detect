@@ -35,12 +35,14 @@ config2 = {
         'image_size' : (600, 400),
         'input_size' : (1920, 1280),
         'enlarged_size' : (960,640),
-        'pix_k': 20,
+        'pix_k': 100,
         }
 config = config2
 #model = torchvision.models.vgg16_bn()
 #model.load_state_dict(torch.load('../data/vgg16_bn-6c64b313.pth'))
-model = torch.load('../data/history/2019-06-30 10:16:25.401992/7:4000')
+#model = torch.load('../data/history/2019-06-30 10:16:25.401992/7:4000')
+#model = torch.load('../data/history/2019-07-05 11:57:55.955671/0:9000')
+model = torch.load('../data/history/2019-07-05 17:37:30.261997/1:5500')
 model.cuda().half()
 model.eval()
 
@@ -141,6 +143,8 @@ def show_page():
         temp = modules_output[module_id] * config['pix_k'] * 2
     else:
         temp = modules_output[module_id] * config['pix_k'] + 128
+    temp[temp > 255] = 255
+    temp[temp < 0] = 0
     image_list_np = temp.cpu().detach().numpy().astype('uint8')
 
     for i in range(config['page_rows'] * config['page_cols']):
@@ -156,7 +160,8 @@ def show_page():
         if bias_channel >= len(image_list_np):
             continue
         page[row * box_w : row * box_w +image_w, col * box_h : col * box_h + image_h] = \
-                cv2.resize(image_list_np[bias_channel], (image_h, image_w))
+                cv2.resize(image_list_np[bias_channel], (image_h, image_w),
+                        interpolation= cv2.INTER_NEAREST)
     select_image_id = channel_id + page_id * config['page_cols'] * config['page_rows']
     if select_image_id < len(image_list_np):
         cv2.imshow('output', cv2.resize(image_list_np[select_image_id], config['enlarged_size'],

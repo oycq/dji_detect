@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-
 cfg = [8, 'M', 16, 'M', 32, 'M', 64, 'M', 32, 'M', 16, 'M', 8, 'M']
 num_classes = 3 
 
@@ -23,8 +22,10 @@ class Model(nn.Module):
     def forward(self, x):
         x = self.features(x)
         x = x.view(x.size(0), -1)
+        loss_1 = (x > 0).sum().half() / x.shape[0] / x.shape[1]
         x = self.classifier(x)
-        return x 
+        return loss_1, x 
+
     def _make_layers(self,cfg,batch_norm):
         layers = []
         in_channels = 3
