@@ -28,11 +28,11 @@ for epoch in range(200):
         input_batch = input_batch.cuda()
         input_batch = input_batch.half() / 255
         label_batch = label_batch.cuda().squeeze()
-        loss_1, outputs = model(input_batch)
+        outputs = model(input_batch)
         _, predicted = torch.max(outputs,1)
         sum_count += batch_size
         correct_count += (predicted == label_batch).sum().item()
-        loss = criterion(outputs, label_batch) + loss_1
+        loss = criterion(outputs, label_batch)
         optimizer.zero_grad() 
         loss.backward()
         optimizer.step()
@@ -49,9 +49,11 @@ for epoch in range(200):
                 input_batch = input_batch.cuda()
                 input_batch = input_batch.half()
                 label_batch = label_batch.cuda().squeeze()
-                loss_1, outputs = model(input_batch)
+                outputs = model(input_batch)
                 loss = criterion(outputs, label_batch)
+                print(outputs)
                 _, predicted = torch.max(outputs,1)
+                print(predicted)
                 sum_count += batch_size
                 correct_count += (predicted == label_batch).sum().item()
                 bar.update(i)
