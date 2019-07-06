@@ -13,10 +13,11 @@ wandb.init()
 
 batch_size = my_dataloader.batch_size
 model = my_model.Model().cuda().half()
-model.load_state_dict(torch.load('../data/history/2019-07-05 23:44:17.697687/1:12000.model'))
+wandb.watch(model)
+#model.load_state_dict(torch.load('../data/history/2019-07-05 23:44:17.697687/1:6000.model'))
 model.train()
 optimizer = optim.Adam(model.parameters(),lr = 0.0003, eps=1e-5)
-optimizer.load_state_dict(torch.load('../data/history/2019-07-05 23:44:17.697687/1:12000.adam'))
+#optimizer.load_state_dict(torch.load('../data/history/2019-07-05 23:44:17.697687/1:6000.adam'))
 criterion = nn.CrossEntropyLoss().cuda().half()
 bar = progressbar.ProgressBar(maxval=len(my_dataloader.test_loader.dataset)/batch_size, \
     widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
@@ -24,8 +25,7 @@ bar = progressbar.ProgressBar(maxval=len(my_dataloader.test_loader.dataset)/batc
 history_directory = '../data/history/%s'%datetime.datetime.now()
 os.mkdir(history_directory)
 
-def test():
-    global model
+def test(model):
     with torch.no_grad():
         bar.start()
         model.eval()
@@ -43,7 +43,6 @@ def test():
             correct_count += (predicted == label_batch).sum().item()
             bar.update(j)
         bar.finish()
-        model.train()
         return correct_count / sum_count * 100
 
 
@@ -51,6 +50,7 @@ for epoch in range(200):
     print('----- epoch %d -----'%epoch) 
     for i, (input_batch, label_batch) in enumerate(my_dataloader.train_loader):
         print("%6d"%i,end = '\r')
+        model.train()
         input_batch = input_batch.cuda()
         input_batch = input_batch.half() / 255
         label_batch = label_batch.cuda().squeeze()
@@ -73,7 +73,7 @@ for epoch in range(200):
         if i % 500 == 0:
             torch.save(model.state_dict(),'%s/%d:%d.model'%(history_directory,epoch,i))
             os.system('cp *.py "%s"'%history_directory)
-            test_accuracy = test()
+            test_accuracy = test(model)
             print("test_accuracy: %.2f"%test_accuracy)
             wandb.log({'test_accuracy':test_accuracy})
 
