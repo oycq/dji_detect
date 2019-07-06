@@ -13,10 +13,10 @@ wandb.init()
 
 batch_size = my_dataloader.batch_size
 model = my_model.Model().cuda().half()
-#model.load_state_dict(torch.load('../data/history/2019-07-05 23:06:52.980294/0:1800'))
+model.load_state_dict(torch.load('../data/history/2019-07-05 23:44:17.697687/6:12000.model'))
 model.train()
 optimizer = optim.Adam(model.parameters(),lr = 0.0003, eps=1e-5)
-#optimizer.load_state_dict(torch.load('../data/history/2019-07-05 23:06:52.980294/0:1800.adam'))
+optimizer.load_state_dict(torch.load('../data/history/2019-07-05 23:44:17.697687/6:12000.adam'))
 criterion = nn.CrossEntropyLoss().cuda().half()
 bar = progressbar.ProgressBar(maxval=len(my_dataloader.test_loader.dataset)/batch_size, \
     widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
@@ -25,28 +25,29 @@ history_directory = '../data/history/%s'%datetime.datetime.now()
 os.mkdir(history_directory)
 
 def test():
-    global model
-    bar.start()
-    model = model.eval()
-    correct_count = 0 
-    sum_count = 0
-    for j, (input_batch, label_batch) in enumerate(my_dataloader.test_loader):
-        input_batch = input_batch.cuda()
-        input_batch = input_batch.half()
-        input_batch = input_batch / 255
-        label_batch = label_batch.cuda().squeeze()
-        loss_1, outputs = model(input_batch)
-        loss = criterion(outputs, label_batch)
-        _, predicted = torch.max(outputs,1)
-        sum_count += batch_size
-        correct_count += (predicted == label_batch).sum().item()
-        bar.update(j)
-        del input_batch,loss_1,outputs,_,predicted,loss
-        torch.cuda.empty_cache()
-#        torch.cuda.empty_cache()
-    bar.finish()
-    model = model.train()
-    return correct_count / sum_count * 100
+    with torch.no_grad():
+        global model
+        bar.start()
+        model.eval()
+        correct_count = 0 
+        sum_count = 0
+        for j, (input_batch, label_batch) in enumerate(my_dataloader.test_loader):
+            input_batch = input_batch.cuda()
+            input_batch = input_batch.half()
+            input_batch = input_batch / 255
+            label_batch = label_batch.cuda().squeeze()
+            loss_1, outputs = model(input_batch)
+            loss = criterion(outputs, label_batch)
+            _, predicted = torch.max(outputs,1)
+            sum_count += batch_size
+            correct_count += (predicted == label_batch).sum().item()
+            bar.update(j)
+            del input_batch,loss_1,outputs,_,predicted,loss
+            torch.cuda.empty_cache()
+    #        torch.cuda.empty_cache()
+        bar.finish()
+        model.train()
+        return correct_count / sum_count * 100
 
 
 for epoch in range(200):
@@ -72,9 +73,10 @@ for epoch in range(200):
                    'train_accuracy':(predicted == label_batch).sum().item()/batch_size*100.0})
         del input_batch,loss_1,outputs,_,predicted,loss,L
         torch.cuda.empty_cache()
+        if i % 2000 == 0:
+            torch.save(optimizer.state_dict(),'%s/%d:%d.adam'%(history_directory,epoch,i))
         if i % 500 == 0:
             torch.save(model.state_dict(),'%s/%d:%d.model'%(history_directory,epoch,i))
-            torch.save(optimizer.state_dict(),'%s/%d:%d.adam'%(history_directory,epoch,i))
             os.system('cp *.py "%s"'%history_directory)
             test_accuracy = test()
             print("test_accuracy: %.2f"%test_accuracy)

@@ -44,7 +44,7 @@ config = config2
 #model = torch.load('../data/history/2019-07-05 11:57:55.955671/0:9000')
 model = torch.load('../data/history/2019-07-05 17:37:30.261997/1:5500')
 model.cuda().half()
-model.eval()
+#model.eval()
 
 for i in range(2):
     if config['box_size'][i] == 0: 
