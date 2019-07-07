@@ -7,7 +7,7 @@ from torch.utils import data
 import torchvision
 import cv2
 
-batch_size = 10 
+batch_size = 5
 
 train_files_list = []
 test_files_list = []
