@@ -57,7 +57,7 @@ for epoch in range(200):
         loss_1, outputs = model(input_batch)
         _, predicted = torch.max(outputs,1)
         loss = criterion(outputs, label_batch)
-        L = loss + loss_1 / 5
+        L = loss# + loss_1 / 5
         optimizer.zero_grad() 
         L.backward()
         optimizer.step()

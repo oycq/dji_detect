@@ -12,7 +12,7 @@ import imagenet1000
 import numpy as np 
 import glob
 import my_model
-from my_model import Model as FMD
+#from my_model import Model as FMD
 
 
 config1 = {
@@ -28,23 +28,24 @@ config1 = {
         }
 config2 = {
 #        'path' : '../data/mp4/GH010083.MP4',
-        'path' : '../data/mp4/GH010092.MP4',
+        'path' : '../data/mp4/GH010083.MP4',
         'page_rows' : 4,
         'page_cols' : 4,
         'box_size' : [0, 0],
         'image_size' : (600, 400),
         'input_size' : (1920, 1280),
         'enlarged_size' : (960,640),
-        'pix_k': 100,
+        'pix_k': 50,
         }
 config = config2
 #model = torchvision.models.vgg16_bn()
 #model.load_state_dict(torch.load('../data/vgg16_bn-6c64b313.pth'))
 #model = torch.load('../data/history/2019-06-30 10:16:25.401992/7:4000')
 #model = torch.load('../data/history/2019-07-05 11:57:55.955671/0:9000')
-model = torch.load('../data/history/2019-07-05 17:37:30.261997/1:5500')
+model = my_model.Model()
 model.cuda().half()
-#model.eval()
+model.load_state_dict(torch.load('../data/history/2019-07-06 15:14:26.869166/11:0.model'))
+model.eval()
 
 for i in range(2):
     if config['box_size'][i] == 0: 
@@ -181,12 +182,13 @@ while(1):
     x = image.unsqueeze(0)
     x = x.half() 
     modules_output = []
-    for i in range(len(model.features)):
-        x = model.features[i](x)
-        modules_output.append(x[0])
-    x = x.view(x.size(0), -1)
-    x = model.classifier(x)
-    _, predicted = torch.max(x, 1)
+    with torch.no_grad():
+        for i in range(len(model.features)):
+            x = model.features[i](x)
+            modules_output.append(x[0])
+        x = x.view(x.size(0), -1)
+        x = model.classifier(x)
+        _, predicted = torch.max(x, 1)
     show_page()
 
     t_end = time.time()*1000
