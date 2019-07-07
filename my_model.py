@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-cfg = [8, 'M', 16, 'M', 32, 'M', 64, 'M', 32, 'M', 16, 'M', 8, 'M']
+cfg = [8,8, 'M', 16, 16, 'M', 32, 32, 'M', 64, 64, 'M', 128, 128, 'M', 256, 256, 'M', 256, 'v', 'M']
 num_classes = 3 
 
 class Model(nn.Module):
@@ -9,20 +9,20 @@ class Model(nn.Module):
         super(Model, self).__init__()
         self.features = self._make_layers(cfg, batch_norm=True)
         self.classifier = nn.Sequential(
-            nn.Linear(8 * 15 * 10, 512),
+            nn.Linear(2 * 15 * 10, 128),
             nn.ReLU(True),
             nn.Dropout(),
-            nn.Linear(512, 512),
+            nn.Linear(128, 128),
             nn.ReLU(True),
             nn.Dropout(),
-            nn.Linear(512, num_classes),
+            nn.Linear(128, num_classes),
         )
         self._initialize_weights()
 
     def forward(self, x):
         x = self.features(x)
         x = x.view(x.size(0), -1)
-        loss_1 = (x > 0).sum().half() / x.shape[0] / x.shape[1]
+        loss_1 = (x > 0).sum().float() / x.shape[0] / x.shape[1]
         x = self.classifier(x)
         return loss_1, x 
 
@@ -30,6 +30,10 @@ class Model(nn.Module):
         layers = []
         in_channels = 3
         for v in cfg:
+            if v == 'v':
+                conv2d = nn.Conv2d(256 , 2, kernel_size=3, padding=1)
+                layers += [conv2d, nn.ReLU(inplace=True)]
+                continue
             if v == 'M':
                 layers += [nn.MaxPool2d(kernel_size=2, stride=2)]
             else:

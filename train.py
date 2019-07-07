@@ -12,13 +12,13 @@ import wandb
 wandb.init()
 
 batch_size = my_dataloader.batch_size
-model = my_model.Model().cuda().half()
+model = my_model.Model().cuda()
 wandb.watch(model)
 #model.load_state_dict(torch.load('../data/history/2019-07-05 23:44:17.697687/1:6000.model'))
 model.train()
 optimizer = optim.Adam(model.parameters(),lr = 0.0003, eps=1e-5)
 #optimizer.load_state_dict(torch.load('../data/history/2019-07-05 23:44:17.697687/1:6000.adam'))
-criterion = nn.CrossEntropyLoss().cuda().half()
+criterion = nn.CrossEntropyLoss().cuda()
 bar = progressbar.ProgressBar(maxval=len(my_dataloader.test_loader.dataset)/batch_size, \
     widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
 
@@ -33,7 +33,7 @@ def test(model):
         sum_count = 0
         for j, (input_batch, label_batch) in enumerate(my_dataloader.test_loader):
             input_batch = input_batch.cuda()
-            input_batch = input_batch.half()
+            input_batch = input_batch.float()
             input_batch = input_batch / 255
             label_batch = label_batch.cuda().squeeze()
             loss_1, outputs = model(input_batch)
@@ -52,12 +52,12 @@ for epoch in range(200):
         print("%6d"%i,end = '\r')
         model.train()
         input_batch = input_batch.cuda()
-        input_batch = input_batch.half() / 255
+        input_batch = input_batch.float() / 255
         label_batch = label_batch.cuda().squeeze()
         loss_1, outputs = model(input_batch)
         _, predicted = torch.max(outputs,1)
         loss = criterion(outputs, label_batch)
-        L = loss + loss_1# / 5
+        L = loss + loss_1 * 10# / 5
         optimizer.zero_grad() 
         L.backward()
         optimizer.step()
