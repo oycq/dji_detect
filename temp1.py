@@ -6,7 +6,7 @@ import torch.optim as optim
 
 model = my_model.Model()
 model.eval()
-model.load_state_dict(torch.load('../data/history/2019-07-07 23:33:24.843776/3:13500.model',map_location={'cuda:0': 'cpu'}))
+#model.load_state_dict(torch.load('../data/history/2019-07-07 23:33:24.843776/3:13500.model',map_location={'cuda:0': 'cpu'}))
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
 for j, (input_batch, label_batch) in enumerate(test_dataloader.test_loader):

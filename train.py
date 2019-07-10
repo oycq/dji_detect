@@ -36,7 +36,7 @@ def test(model):
             input_batch = input_batch.float()
             input_batch = input_batch / 255
             label_batch = label_batch.cuda().squeeze()
-            loss_1, outputs = model(input_batch)
+            loss_1, loss_2, outputs = model(input_batch)
             loss = criterion(outputs, label_batch)
             _, predicted = torch.max(outputs,1)
             sum_count += batch_size
@@ -54,10 +54,10 @@ for epoch in range(200):
         input_batch = input_batch.cuda()
         input_batch = input_batch.float() / 255
         label_batch = label_batch.cuda().squeeze()
-        loss_1, outputs = model(input_batch)
+        loss_1, loss_2, outputs = model(input_batch)
         _, predicted = torch.max(outputs,1)
         loss = criterion(outputs, label_batch)
-        L = loss + loss_1 * loss_1 * 100# / 5
+        L = loss + loss_2
         optimizer.zero_grad() 
         L.backward()
         optimizer.step()
@@ -66,6 +66,7 @@ for epoch in range(200):
         wandb.log({'i':i,
                    'train_loss':loss.item(),
                    'train_loss_1':loss_1.item(),
+                   'train_loss_2':loss_2.item(),
                    'train_L':L.item(),
                    'train_accuracy':(predicted == label_batch).sum().item()/batch_size*100.0})
         if i % 2000 == 0:
