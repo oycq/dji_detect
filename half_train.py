@@ -16,7 +16,7 @@ model = my_model.Model().cuda()
 wandb.watch(model)
 #model.load_state_dict(torch.load('../data/history/2019-07-05 23:44:17.697687/1:6000.model'))
 model.train()
-optimizer = optim.Adam(model.parameters())
+optimizer = optim.Adam(model.parameters(),lr = 0.0003, eps=1e-5)
 #optimizer.load_state_dict(torch.load('../data/history/2019-07-05 23:44:17.697687/1:6000.adam'))
 criterion = nn.CrossEntropyLoss().cuda()
 bar = progressbar.ProgressBar(maxval=len(my_dataloader.test_loader.dataset)/batch_size, \
