@@ -1,47 +1,25 @@
-# This import registers the 3D projection, but is otherwise unused.
-from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
-
-from matplotlib.collections import PolyCollection
 import matplotlib.pyplot as plt
-from matplotlib import colors as mcolors
 import numpy as np
+import cv2
+plt.ion() ## Note this correction
+fig=plt.figure()
+plt.axis([0,1000,0,1])
 
-# Fixing random state for reproducibility
-np.random.seed(19680801)
-
-
-def polygon_under_graph(xlist, ylist):
-    """
-    Construct the vertex list which defines the polygon filling the space under
-    the (xlist, ylist) line graph.  Assumes the xs are in ascending order.
-    """
-    return [(xlist[0], 0.), *zip(xlist, ylist), (xlist[-1], 0.)]
-
-
-fig = plt.figure()
-ax = fig.gca(projection='3d')
-
-# Make verts a list, verts[i] will be a list of (x,y) pairs defining polygon i
-verts = []
-
-# Set up the x sequence
-xs = np.linspace(0., 10., 26)
-
-# The ith polygon will appear on the plane y = zs[i]
-zs = range(4)
-
-for i in zs:
-    ys = np.random.rand(len(xs))
-    verts.append(polygon_under_graph(xs, ys))
-
-poly = PolyCollection(verts, facecolors=['r', 'g', 'b', 'y'], alpha=.6)
-ax.add_collection3d(poly, zs=zs, zdir='y')
-
-ax.set_xlabel('X')
-ax.set_ylabel('Y')
-ax.set_zlabel('Z')
-ax.set_xlim(0, 10)
-ax.set_ylim(-1, 4)
-ax.set_zlim(0, 1)
-
-plt.show()
+i=0
+x=list()
+y=list()
+cap = cv2.VideoCapture('../data/mp4/GH010083.MP4')
+while i <1000:
+    _ , image = cap.read()
+    if _ == False:
+        continue
+    temp_y=np.random.random();
+    x.append(i);
+    y.append(temp_y);
+    plt.scatter(i,temp_y);
+    i+=1;
+    plt.show()
+    plt.pause(0.0001) #Note this correction
+    #cv2.imshow('hasakey',image)
+    #cv2.waitKey(20)
+    break

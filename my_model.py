@@ -22,7 +22,7 @@ class Model(nn.Module):
     def forward(self, x):
         x = self.features(x)
         x = x.view(x.size(0), -1)
-        loss_1 = (x > 0).sum().float() / x.shape[0] / x.shape[1]
+        loss_1 = x.sum()
         x = self.classifier(x)
         return loss_1, x 
 
