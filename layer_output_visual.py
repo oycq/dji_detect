@@ -29,7 +29,7 @@ config1 = {
 config2 = {
 #        'path' : '../data/mp4/GH010083.MP4',
 #        'path' : '../data/mp4/GH010083.MP4',
-        'path' : '../data/mp4/GH010097.MP4',
+        'path' : '../data/mp4/GH010083.MP4',
         'page_rows' : 4,
         'page_cols' : 4,
         'box_size' : [0, 0],
@@ -45,7 +45,7 @@ config = config2
 #model = torch.load('../data/history/2019-07-05 11:57:55.955671/0:9000')
 model = my_model.Model()
 model.cuda().half()
-model.load_state_dict(torch.load('../data/history/2019-07-10 16:51:25.453881/1:12000.model'))
+model.load_state_dict(torch.load('../data/history/2019-07-10 19:56:03.207301/10:25000.model'))
 #model.eval()
 #model.features[25].train()
 model.train()
