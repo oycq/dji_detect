@@ -18,7 +18,9 @@ class Model(nn.Module):
         peak, _ = x.max(dim = 2)
         second_large, _ = x.topk(2, dim = 2)
         second_large = second_large.sum(dim = 2) - peak
-        predict =  peak - second_large
+        sencond_class, _ = x.topk(100, dim = 2)
+        sencond_class = sencond_class.mean(dim = 2)
+        predict = peak - second_large + peak - sencond_class
         threshold = self.threshold.repeat(x.size(0),1)
         x = torch.cat((predict,threshold), dim = 1)
         return dense,x

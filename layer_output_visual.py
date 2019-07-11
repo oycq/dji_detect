@@ -45,7 +45,7 @@ config = config2
 #model = torch.load('../data/history/2019-07-05 11:57:55.955671/0:9000')
 model = my_model.Model()
 model.cuda().half()
-model.load_state_dict(torch.load('../data/history/2019-07-10 19:56:03.207301/10:25000.model'))
+model.load_state_dict(torch.load('../data/history/2019-07-11 19:02:07.749738/1:9500.model'))
 #model.eval()
 #model.features[25].train()
 model.train()
@@ -134,10 +134,13 @@ def change_channel(plus):
 def change_page(plus):
     global page_id
     channels_per_page = config['page_rows'] * config['page_cols']
+    pages_count = 1
+    if (len(modules_output[module_id]) // channels_per_page) > 0:
+        pages_count = len(modules_output[module_id]) // channels_per_page
     if plus == 1:
-        page_id = (page_id + 1) % (len(modules_output[module_id]) // channels_per_page)
+        page_id = (page_id + 1) % (pages_count)
     else:
-        page_id = (page_id - 1) % (len(modules_output[module_id]) // channels_per_page)
+        page_id = (page_id - 1) % (pages_count)
 
 def show_page():
     global page
@@ -189,14 +192,15 @@ while(1):
         for i in range(len(model.features)):
             x = model.features[i](x)
             modules_output.append(x[0])
-        x = x.view(x.size(0), -1)
-        x = model.classifier(x)
-        _, predicted = torch.max(x, 1)
+#        x = x.view(x.size(0), -1)
+#        x = model.classifier(x)
+#        _, predicted = torch.max(x, 1)
     show_page()
 
     t_end = time.time()*1000
     print("                                                                                                ",end = '\r')
-    class_label = imagenet1000.d[predicted.item()]
+    class_label = 'not enable'
+#    class_label = imagenet1000.d[predicted.item()]
     print("%7.2f %-20s %5d  %-10s"%
             (t_end - t_start, module_name, 
                 channel_id + page_id * config['page_rows'] * config['page_cols'],
