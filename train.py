@@ -14,10 +14,10 @@ wandb.init()
 batch_size = my_dataloader.batch_size
 model = my_model.Model().cuda()
 wandb.watch(model)
-#model.load_state_dict(torch.load('../data/history/2019-07-05 23:44:17.697687/1:6000.model'))
+model.load_state_dict(torch.load('../data/history/2019-07-10 16:51:25.453881/1:20000.model'))
 model.train()
 optimizer = optim.Adam(model.parameters())
-#optimizer.load_state_dict(torch.load('../data/history/2019-07-05 23:44:17.697687/1:6000.adam'))
+optimizer.load_state_dict(torch.load('../data/history/2019-07-10 16:51:25.453881/1:20000.adam'))
 criterion = nn.CrossEntropyLoss().cuda()
 bar = progressbar.ProgressBar(maxval=len(my_dataloader.test_loader.dataset)/batch_size, \
     widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
@@ -28,7 +28,7 @@ os.mkdir(history_directory)
 def test(model):
     with torch.no_grad():
         bar.start()
-        model.eval()
+#        model.eval()
         correct_count = 0 
         sum_count = 0
         for j, (input_batch, label_batch) in enumerate(my_dataloader.test_loader):
