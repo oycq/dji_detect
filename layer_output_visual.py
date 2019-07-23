@@ -11,8 +11,8 @@ import threading
 import imagenet1000
 import numpy as np 
 import glob
-import my_model
-from my_model import Model as FMD
+import test_model as my_model
+#from my_model import Model as FMD
 
 
 config1 = {
@@ -28,23 +28,27 @@ config1 = {
         }
 config2 = {
 #        'path' : '../data/mp4/GH010083.MP4',
-        'path' : '../data/mp4/GH010092.MP4',
+#        'path' : '../data/mp4/GH010083.MP4',
+        'path' : '../data/mp4/playground.MP4',
         'page_rows' : 4,
         'page_cols' : 4,
         'box_size' : [0, 0],
         'image_size' : (600, 400),
         'input_size' : (1920, 1280),
-        'enlarged_size' : (960,640),
-        'pix_k': 100,
+        'enlarged_size' : (1920,1280),
+        'pix_k': 1,
         }
 config = config2
 #model = torchvision.models.vgg16_bn()
 #model.load_state_dict(torch.load('../data/vgg16_bn-6c64b313.pth'))
 #model = torch.load('../data/history/2019-06-30 10:16:25.401992/7:4000')
 #model = torch.load('../data/history/2019-07-05 11:57:55.955671/0:9000')
-model = torch.load('../data/history/2019-07-05 17:37:30.261997/1:5500')
+model = my_model.Model()
 model.cuda().half()
+model.load_state_dict(torch.load('../data/history/2019-07-18 22:48:57.586286/98:3000.model'))
 #model.eval()
+#model.features[25].train()
+model.train()
 
 for i in range(2):
     if config['box_size'][i] == 0: 
@@ -130,10 +134,13 @@ def change_channel(plus):
 def change_page(plus):
     global page_id
     channels_per_page = config['page_rows'] * config['page_cols']
+    pages_count = 1
+    if (len(modules_output[module_id]) // channels_per_page) > 0:
+        pages_count = len(modules_output[module_id]) // channels_per_page
     if plus == 1:
-        page_id = (page_id + 1) % (len(modules_output[module_id]) // channels_per_page)
+        page_id = (page_id + 1) % (pages_count)
     else:
-        page_id = (page_id - 1) % (len(modules_output[module_id]) // channels_per_page)
+        page_id = (page_id - 1) % (pages_count)
 
 def show_page():
     global page
@@ -181,17 +188,19 @@ while(1):
     x = image.unsqueeze(0)
     x = x.half() 
     modules_output = []
-    for i in range(len(model.features)):
-        x = model.features[i](x)
-        modules_output.append(x[0])
-    x = x.view(x.size(0), -1)
-    x = model.classifier(x)
-    _, predicted = torch.max(x, 1)
+    with torch.no_grad():
+        for i in range(len(model.features)):
+            x = model.features[i](x)
+            modules_output.append(x[0])
+#        x = x.view(x.size(0), -1)
+#        x = model.classifier(x)
+#        _, predicted = torch.max(x, 1)
     show_page()
 
     t_end = time.time()*1000
     print("                                                                                                ",end = '\r')
-    class_label = imagenet1000.d[predicted.item()]
+    class_label = 'not enable'
+#    class_label = imagenet1000.d[predicted.item()]
     print("%7.2f %-20s %5d  %-10s"%
             (t_end - t_start, module_name, 
                 channel_id + page_id * config['page_rows'] * config['page_cols'],

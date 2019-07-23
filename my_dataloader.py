@@ -6,30 +6,27 @@ from torch.utils.data import Dataset
 from torch.utils import data
 import torchvision
 import cv2
+import numpy as np
 
-batch_size = 10 
+batch_size = 5
 
-train_files_list = []
-test_files_list = []
+train_files_list = np.load('../data/image_name_list.npy')
+mark_data = np.load('../data/mark.npy')
+label = []
+for item in train_files_list:
+    label.append(int(item.split('/')[-3]))
+label = np.array(label)
+keep = ((label > 0) == (mark_data.sum(1) > 0))
+train_files_list = train_files_list[keep]
+mark_data = mark_data[keep]
+label = label[keep]
 
-categories = [0, 1, 2]
-train_files_in_each_category = []
-short_board_number = 99999999 # caculate this number for samples balance
-for i in range(len(categories)):
-    files = glob.glob('../data/train/%d/*/*'%categories[i])
-    train_files_in_each_category.append(files)
-    if len(files) < short_board_number:
-        short_board_number = len(files) 
-    print('categorie %3d:%7d examples'%(i,len(files)))
-for item in train_files_in_each_category:
-    train_files_list += item[:short_board_number]
-print('Balanced examples:%d'%len(train_files_list))
-
-test_files_list = glob.glob('../data/test/*/*/*')
 
 class MyDataset(Dataset):
-    def __init__(self, files_list):
+    def __init__(self, files_list, mark_data, label):
         self.files_list = files_list 
+        self.mark_data = mark_data
+        self.label = label
 
     def __len__(self):
         return len(self.files_list)
@@ -37,19 +34,18 @@ class MyDataset(Dataset):
     def __getitem__(self, index):
         image = cv2.imread(self.files_list[index])
         X = torch.tensor(image.transpose((2,0,1)))
-        label = self.files_list[index].split('/')[-3]
-        y = torch.tensor([int(label)], dtype=torch.long)
-        return X, y
+        mask = torch.zeros((2,40,60)) - 1
+        if self.label[index] != 0:
+            mask[self.label[index] -1,mark_data[index][1] // 32 : mark_data[index][3] // 32 + 1,mark_data[index][0] // 32 : mark_data[index][2] // 32 + 1] = 1
+        return X, mask
 
-train_set = MyDataset(train_files_list)
-test_set  = MyDataset(test_files_list)
+train_set = MyDataset(train_files_list, mark_data, label)
 
-train_loader = data.DataLoader(train_set, batch_size, True, num_workers = 5, drop_last=True)
-test_loader  = data.DataLoader(test_set , batch_size, True, num_workers = 5, drop_last=True)
+train_loader = data.DataLoader(train_set, batch_size, shuffle=True, num_workers = 5, drop_last=True)
 
 if __name__ == '__main__':
     max_epochs = 1000
-    for i, (input_batch, label_batch) in enumerate(test_loader):
+    for i, (input_batch, mask_batch) in enumerate(train_loader):
         print(i)
 
 #if __name__ == '__main__':
