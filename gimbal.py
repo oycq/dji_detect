@@ -6,8 +6,8 @@ ser = serial.Serial('/dev/ttyUSB0',115200)  # open serial port
 time.sleep(1)
 
 def angle_control(angle_pitch, angle_roll, angle_yaw,
-            speed_roll = 0, speed_pitch = 0, speed_yaw = 0,
-            mode = 66):
+            speed_roll = 40, speed_pitch = 30, speed_yaw = 30,
+            mode = 3):
     command_id = 67
     payload_size = 3 + 2 * 3 + 2 * 3
     header_check_sum = (command_id + payload_size) % 256
@@ -53,9 +53,11 @@ def angle_control(angle_pitch, angle_roll, angle_yaw,
 #    print("1    %7.4f"%(o1-o))
 #    print("2    %7.4f"%(o2-o1))
 #    asd()
-    a = ser.read(7)
-    o3 = time.time() *1000
     a = ser.read(6)
+
+
+    o3 = time.time() *1000
+#    a = ser.read(7)
     o4 = time.time() *1000
 #    os.system('clear')
 #    print(len(bytes_to_send))
