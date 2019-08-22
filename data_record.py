@@ -30,13 +30,13 @@ config2 = {
 #        'path' : '../data/mp4/GH010083.MP4',
 #        'path' : '../data/mp4/GH010083.MP4',
         'path' : '../data/mp4/playground.MP4',
-#        'path' : '../data/mp4/daying1.mp4',
+#       'path' : '../data/mp4/daying1.mp4',
         'page_rows' : 4,
         'page_cols' : 4,
         'box_size' : [0, 0],
         'image_size' : (600, 400),
         'input_size' : (1920, 1280),
-        'enlarged_size' : (1920,1280),
+        'enlarged_size' : (2000,1440),
         'pix_k': 1,
         }
 config = config2
@@ -172,16 +172,16 @@ def show_page():
                         interpolation= cv2.INTER_NEAREST)
     select_image_id = channel_id + page_id * config['page_cols'] * config['page_rows']
     if select_image_id < len(image_list_np):
-        cv2.imshow('output', cv2.resize(image_list_np[select_image_id], config['enlarged_size'],
-         interpolation= cv2.INTER_NEAREST)) 
-    cv2.imshow('page',page)
+        cv2.imshow('output', np.rot90(cv2.resize(image_list_np[select_image_id], config['enlarged_size'],
+         interpolation= cv2.INTER_NEAREST))) 
+    cv2.imshow('page',np.rot90(page))
         
 
 feeder = imageFeeder(config)
 while(1):
     t_start = time.time()*1000
     image = feeder.read()
-    cv2.imshow('frame',cv2.resize(image,config['enlarged_size']))
+    cv2.imshow('frame',np.rot90(cv2.resize(image,config['enlarged_size'])))
     image = torch.tensor(image.transpose((2,0,1)), dtype = torch.float).cuda()#....
     image = image / 255
     image = torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406],
