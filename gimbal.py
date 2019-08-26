@@ -5,9 +5,9 @@ import os
 ser = serial.Serial('/dev/ttyUSB0',115200)  # open serial port
 time.sleep(1)
 
-def angle_control(angle_pitch, angle_roll, angle_yaw,
-            speed_roll = 40, speed_pitch = 30, speed_yaw = 30,
-            mode = 3):
+def angle_control(angle_pitch = 0, angle_roll = 0, angle_yaw = 0,
+            speed_pitch = 0, speed_roll = 0, speed_yaw = 0,
+            mode = 1):
     command_id = 67
     payload_size = 3 + 2 * 3 + 2 * 3
     header_check_sum = (command_id + payload_size) % 256
