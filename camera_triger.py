@@ -5,8 +5,11 @@ import cv2
 import serial#sudo pip3 install pyserial
 import time
 
+#2-3frame latency, 3-4ms latency
 setting_list = [
     ['TriggerMode'           , 'Off'      , 'General'],
+    ['TriggerSource'           , 'Software'      , 'General'],
+    ['TriggerMode'           , 'On'      , 'General'],
     ['StreamBufferHandlingMode'  , 'NewestOnly'      , 'Stream' ],
     ['AcquisitionMode'           , 'Continuous'      , 'General'],
                 ]
@@ -46,6 +49,8 @@ class Camera():
         self.cam = self.cam_list[0]
         self.cam.Init()
         self.config_camera()
+        nodemap = self.cam.GetNodeMap()
+        self.trigger_node = PySpin.CCommandPtr(nodemap.GetNode('TriggerSoftware'))
         self.cam.BeginAcquisition()
 
     def __del__(self):
@@ -56,6 +61,7 @@ class Camera():
         self.system.ReleaseInstance()
 
     def read(self):
+        self.trigger_node.Execute()
         image_pt = self.cam.GetNextImage()
         if image_pt.IsIncomplete():
             print('Image incomplete with image status %d ...' % image_pt.GetImageStatus())
