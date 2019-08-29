@@ -9,12 +9,17 @@ import numpy as np
 
 l_before = 50
 l_after = 30
-batch_size = 1000
+batch_size = 2000
 log_list = glob.glob('.data/*.log')
 samples = []
 for log_file in log_list:
     data_array = np.loadtxt(log_file, dtype = 'float32')
-    data_array = (data_array - np.average(data_array, 0)) / np.std(data_array, 0)
+    data_array[:,0] /= 50
+    data_array[:,2] /= 600
+    data_array[:,3] /= 960
+    data_array[:,4] /= 200
+    data_array[:,5] /= 200
+    data_array[:,6:] = (data_array[:,6:] - np.average(data_array[:,6:], 0)) / np.std(data_array[:,6:], 0)
     for i in range(len(data_array) - 2 - l_after - l_before):
         a = data_array[i + 1: i + l_before + 1, [0, 1, 2, 3 ,6, 7, 8]]
         b = data_array[i : i + l_before, [4, 5]]
@@ -24,7 +29,6 @@ for log_file in log_list:
         invalid = data_array[i+ l_before + 1 :i + 1 + l_before + l_after, [1]]
         if np.sum(invalid > 0) == 0:
             samples.append([prior_info, control, control_effect])
-
 
 class MyDataset(Dataset):
     def __init__(self, samples):
@@ -41,10 +45,10 @@ class MyDataset(Dataset):
 
 train_samples = samples[0:len(samples) // 3 * 2]
 test_samples = samples[len(samples) // 3 * 2:]
-train_set = MyDataset(samples)
-train_loader = data.DataLoader(train_set, batch_size, shuffle=True, num_workers = 5, drop_last=True)
-test_set = MyDataset(samples)
-test_loader = data.DataLoader(test_set, batch_size, shuffle=True, num_workers = 5, drop_last=True)
+train_set = MyDataset(train_samples)
+train_loader = data.DataLoader(train_set, batch_size, shuffle=True, num_workers = 8, drop_last=True)
+test_set = MyDataset(test_samples)
+test_loader = data.DataLoader(test_set, batch_size, shuffle=True, num_workers = 8, drop_last=True)
 
 if __name__ == '__main__':
     max_epochs = 1000

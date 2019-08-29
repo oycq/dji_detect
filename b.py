@@ -4,7 +4,7 @@ import os
 import torch.nn as nn
 import torch.nn.init as init
 
-lstm_h = 200
+lstm_h = 100
 class Model(nn.Module):
     def __init__(self):
         super(Model, self).__init__()
@@ -22,7 +22,8 @@ class Model(nn.Module):
         a, (h_n, c_n) = self.lstm_a(prior_info)
         b, _ = self.lstm_b(control, (h_n, c_n))
         c = self.linear(b)
-        loss = torch.pow((control_effect - c) / control_effect, 2)
+#        loss = torch.pow((control_effect - c) / (control_effect + 0.015), 2)
+        loss = (control_effect - c).abs()
         loss = torch.mean(loss)
         return loss
 
