@@ -62,29 +62,22 @@ if __name__ == '__main__':
     model.load_state_dict(torch.load('../data/lstm_history/2019-08-29 10:45:01.081341/1090:7.model'))
     model.eval()
     with torch.no_grad():
-        figure,axes = plt.subplots(2,2)
+        figure,axes = plt.subplots(1,2)
         for i, input_batch in enumerate(test_loader):
             loss,predict,control_effect = model(input_batch)
-            if i == 11:
-                control_effect = control_effect.numpy()[0,:,0]
-                predict = predict.numpy()[0,:,0]
-                axes[0][0].scatter(range(control_effect.size),control_effect,label='effect')
-                axes[0][0].scatter(range(control_effect.size),predict,label='predict')
-                axes[0][0].legend()
-            if i == 22:
-                control_effect = control_effect.numpy()[0,:,0]
-                predict = predict.numpy()[0,:,0]
-                axes[0][1].scatter(range(control_effect.size),control_effect)
-                axes[0][1].scatter(range(control_effect.size),predict)
-            if i == 33:
-                control_effect = control_effect.numpy()[0,:,0]
-                predict = predict.numpy()[0,:,0]
-                axes[1][0].scatter(range(control_effect.size),control_effect)
-                axes[1][0].scatter(range(control_effect.size),predict)
-            if i == 44:
-                control_effect = control_effect.numpy()[0,:,0]
-                predict = predict.numpy()[0,:,0]
-                axes[1][1].scatter(range(control_effect.size),control_effect)
-                axes[1][1].scatter(range(control_effect.size),predict)
-                break
-    plt.show()
+            control_effect = control_effect.numpy()[0,:,0]
+            predict = predict.numpy()[0,:,0]
+#            axes.scatter(range(control_effect.size),control_effect,label='effect')
+#            axes.scatter(range(control_effect.size),predict,label='predict')
+            axes[0].plot(range(control_effect.size),control_effect,label='effect')
+            axes[0].plot(range(control_effect.size),predict,label='predict')
+            axes[0].set_ylim(-0.1,0.1)
+            axes[1].plot(range(control_effect.size),np.abs(predict-control_effect),label='delta')
+            axes[1].set_ylim(0,0.02)
+            axes[0].legend()
+            plt.draw()
+            plt.pause(0.2)
+            axes[0].clear()
+            axes[1].clear()
+
+  #  plt.show()
