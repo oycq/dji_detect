@@ -16,16 +16,16 @@ class Model(nn.Module):
         self._weight_init(self.linear)
 
     def forward(self, data):
-        prior_info = data[0].cuda()
-        control = data[1].cuda()
-        control_effect = data[2].cuda()
+        prior_info = data[0]
+        control = data[1]
+        control_effect = data[2]
         a, (h_n, c_n) = self.lstm_a(prior_info)
         b, _ = self.lstm_b(control, (h_n, c_n))
         c = self.linear(b)
 #        loss = torch.pow((control_effect - c) / (control_effect + 0.015), 2)
         loss = (control_effect - c).abs()
         loss = torch.mean(loss)
-        return loss
+        return loss,c,control_effect
 
     def _weight_init(self, m):
         '''

@@ -11,7 +11,7 @@ import datetime
 batch_size = my_dataloader.batch_size
 model = my_model.Model()
 #wandb.watch(model)
-model.load_state_dict(torch.load('../data/lstm_history/2019-08-29 10:45:01.081341/1090:7.adam'))
+model.load_state_dict(torch.load('../data/lstm_history/2019-08-29 10:45:01.081341/1090:7.model'))
 model.eval()
 optimizer = optim.Adam(model.parameters())
 

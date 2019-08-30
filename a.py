@@ -6,10 +6,13 @@ from torch.utils.data import Dataset
 from torch.utils import data
 import torchvision
 import numpy as np
+import b as my_model
+import matplotlib.pyplot as plt
+t = time.time() * 1000
 
 l_before = 50
 l_after = 30
-batch_size = 2000
+batch_size = 1
 log_list = glob.glob('.data/*.log')
 samples = []
 for log_file in log_list:
@@ -19,7 +22,9 @@ for log_file in log_list:
     data_array[:,3] /= 960
     data_array[:,4] /= 200
     data_array[:,5] /= 200
+
     data_array[:,6:] = (data_array[:,6:] - np.average(data_array[:,6:], 0)) / np.std(data_array[:,6:], 0)
+
     for i in range(len(data_array) - 2 - l_after - l_before):
         a = data_array[i + 1: i + l_before + 1, [0, 1, 2, 3 ,6, 7, 8]]
         b = data_array[i : i + l_before, [4, 5]]
@@ -29,6 +34,7 @@ for log_file in log_list:
         invalid = data_array[i+ l_before + 1 :i + 1 + l_before + l_after, [1]]
         if np.sum(invalid > 0) == 0:
             samples.append([prior_info, control, control_effect])
+
 
 class MyDataset(Dataset):
     def __init__(self, samples):
@@ -46,12 +52,39 @@ class MyDataset(Dataset):
 train_samples = samples[0:len(samples) // 3 * 2]
 test_samples = samples[len(samples) // 3 * 2:]
 train_set = MyDataset(train_samples)
-train_loader = data.DataLoader(train_set, batch_size, shuffle=True, num_workers = 8, drop_last=True)
+train_loader = data.DataLoader(train_set, batch_size, shuffle=False, num_workers = 8, drop_last=True)
 test_set = MyDataset(test_samples)
-test_loader = data.DataLoader(test_set, batch_size, shuffle=True, num_workers = 8, drop_last=True)
+test_loader = data.DataLoader(test_set, batch_size, shuffle=False, num_workers = 8, drop_last=True)
+
 
 if __name__ == '__main__':
-    max_epochs = 1000
-    for i, _ in enumerate(train_loader):
-        print(i, _[2].shape)
-
+    model = my_model.Model()
+    model.load_state_dict(torch.load('../data/lstm_history/2019-08-29 10:45:01.081341/1090:7.model'))
+    model.eval()
+    with torch.no_grad():
+        figure,axes = plt.subplots(2,2)
+        for i, input_batch in enumerate(test_loader):
+            loss,predict,control_effect = model(input_batch)
+            if i == 11:
+                control_effect = control_effect.numpy()[0,:,0]
+                predict = predict.numpy()[0,:,0]
+                axes[0][0].scatter(range(control_effect.size),control_effect,label='effect')
+                axes[0][0].scatter(range(control_effect.size),predict,label='predict')
+                axes[0][0].legend()
+            if i == 22:
+                control_effect = control_effect.numpy()[0,:,0]
+                predict = predict.numpy()[0,:,0]
+                axes[0][1].scatter(range(control_effect.size),control_effect)
+                axes[0][1].scatter(range(control_effect.size),predict)
+            if i == 33:
+                control_effect = control_effect.numpy()[0,:,0]
+                predict = predict.numpy()[0,:,0]
+                axes[1][0].scatter(range(control_effect.size),control_effect)
+                axes[1][0].scatter(range(control_effect.size),predict)
+            if i == 44:
+                control_effect = control_effect.numpy()[0,:,0]
+                predict = predict.numpy()[0,:,0]
+                axes[1][1].scatter(range(control_effect.size),control_effect)
+                axes[1][1].scatter(range(control_effect.size),predict)
+                break
+    plt.show()
