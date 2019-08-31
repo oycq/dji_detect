@@ -1,4 +1,3 @@
-import a
 import torch
 import os
 import torch.nn as nn
@@ -23,9 +22,15 @@ class Model(nn.Module):
         b, _ = self.lstm_b(control, (h_n, c_n))
         c = self.linear(b)
 #        loss = torch.pow((control_effect - c) / (control_effect + 0.015), 2)
-        loss = (control_effect - c).abs()
-        loss = torch.mean(loss)
-        return loss,c,control_effect
+#        loss = (control_effect - c).abs()
+#        loss = torch.mean(loss)
+#        return loss,c,control_effect,
+        loss1 = torch.mean(c.abs()) 
+        loss2 = torch.max((control[0,:-1] - control[0,1:]).abs()) / 400 
+        loss3 = torch.sum(control.abs()) / 2000
+#        print('%10.7f %10.7f %10.7f '%(loss1.item(),loss2.item(),loss3.item()), end = '\r')
+        loss = loss1 + loss2 + loss3
+        return loss, c
 
     def _weight_init(self, m):
         '''

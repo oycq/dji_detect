@@ -6,10 +6,11 @@ from torch.utils import data
 import torchvision
 import numpy as np
 import b as my_model
+import d as new_model
 import matplotlib.pyplot as plt
 import glob
 import torch.optim as optim
-t = time.time() * 1000
+t = time.time() * 2000
 
 l_before = 50
 l_after = 30
@@ -24,6 +25,7 @@ for log_file in log_list:
     data_array[:,3] /= 960
     data_array[:,4] /= 200
     data_array[:,5] /= 200
+
 
     data_array[:,6:] = (data_array[:,6:] - np.average(data_array[:,6:], 0)) / np.std(data_array[:,6:], 0)
 
@@ -63,49 +65,61 @@ test_loader = data.DataLoader(test_set, batch_size, shuffle=False, num_workers =
 
 
 model = my_model.Model().cuda()
-
 model.load_state_dict(torch.load('../data/lstm_history/2019-08-29 10:45:01.081341/1090:7.model'))
+new_model = new_model.Model().cuda()
+new_model.load_state_dict(torch.load('fuck.model'))
+new_optimizer = optim.Adam(new_model.parameters())
 
 #model.eval()
 if __name__ == '__main__':
 
     figure,axes = plt.subplots(1,2)
-    for i, input_batch in enumerate(test_loader):
-        control = input_batch[1].cuda()
-#        control_o = input_batch[1].numpy()[0,:,0] * 200
-#        predict_o = input_batch[2].numpy()[0,:,0]
- 
-        control.fill_(0)
-        control.requires_grad = True
-        optimizer = optim.Adam([control])
-        input_batch = [input_batch[0].cuda(),control.cuda(),input_batch[2].cuda()]
+    for k in range(20):
+        print(' ')
+        print(k)
+        for i, input_batch in enumerate(train_loader):
+            control = input_batch[1].cuda()
+     
+            control.fill_(0)
+            control.requires_grad = True
+            optimizer = optim.Adam([control])
+            input_batch = [input_batch[0].cuda(),control.cuda(),input_batch[2].cuda()]
 
-        time_o = time.time() * 1000
-        for j in range(50):
-            loss,predict = model(input_batch)
-            optimizer.zero_grad() 
-            loss.backward()
-            optimizer.step()
-            print(predict[:10,0,1] * 200)
-           # print("\nloss: %7d %10.6f"%(j,loss),end = '\r')
-        time_1 = time.time() * 1000
-        print("time: %10.3f"%(time_1 - time_o))
-#            if j == 49:
-#                print('\n')
-#                control_ = control.cpu().detach().numpy()[0,:,0] * 200
-#                predict_ = predict.cpu().detach().numpy()[0,:,0]
-#        #            axes.scatter(range(control_effect.size),control_effect,label='effect')
-#        #            axes.scatter(range(control_effect.size),predict,label='predict')
-#                axes[0].plot(range(predict_.size),predict_,label='predict')
-#                axes[0].plot(range(predict_o.size),predict_o,label='predict_o')
-#                axes[0].plot(range(predict_.size),np.zeros(predict_.size),label='predict')
-#                axes[0].set_ylim(-0.05,0.05)
-#                axes[0].legend()
-#                axes[1].plot(range(control_.size),control_,label='control')
-#                axes[1].plot(range(control_o.size),control_o,label='control_o')
-#                axes[1].set_ylim(-20,20)
-#                figure.canvas.draw()
-#                plt.pause(0.01)
-#                axes[0].clear()
-#                axes[1].clear()
+            for j in range(50):
+                loss,predict = model(input_batch)
+                optimizer.zero_grad() 
+                loss.backward()
+                optimizer.step()
+            
+            new_input_batch  = [input_batch[0], predict[:,0].detach()]
+            for i in range(50):
+                new_loss,e = new_model(new_input_batch)
+                print(new_loss.item() * 200 ,end = '\r')
+                new_optimizer.zero_grad() 
+                new_loss.backward()
+                new_optimizer.step()
+            print('*******train  ', e[0].detach() * 200,predict[0,0].detach()*200)
+        for i, input_batch in enumerate(test_loader):
+            control = input_batch[1].cuda()
+     
+            control.fill_(0)
+            control.requires_grad = True
+            optimizer = optim.Adam([control])
+            input_batch = [input_batch[0].cuda(),control.cuda(),input_batch[2].cuda()]
+
+            for j in range(50):
+                loss,predict = model(input_batch)
+                optimizer.zero_grad() 
+                loss.backward()
+                optimizer.step()
+            
+            new_input_batch  = [input_batch[0], predict[:,0].detach()]
+            for i in range(50):
+                new_loss,e = new_model(new_input_batch)
+                print(new_loss.item() * 200 ,end = '\r')
+                new_optimizer.zero_grad() 
+                new_loss.backward()
+                new_optimizer.step()
+            print('*******test  ', e[0].detach() * 200,predict[0,0].detach()*200)
+    torch.save(new_model.state_dict(),'fuck.model')
 
