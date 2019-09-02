@@ -3,13 +3,12 @@ import os
 import torch.nn as nn
 import torch.nn.init as init
 
-lstm_h = 100
+lstm_h = 50
 class Model(nn.Module):
     def __init__(self):
         super(Model, self).__init__()
         self.lstm_a = nn.LSTM(9, lstm_h, 1, batch_first = True)
-        self.lstm_b = nn.LSTM(2, lstm_h, 1, batch_first = True)
-        self.linear = nn.Linear(lstm_h, 2, bias=True)
+        self.linear = nn.Linear(lstm_h, 10, bias=True)
         self._weight_init(self.lstm_a)
         self._weight_init(self.lstm_b)
         self._weight_init(self.linear)

@@ -13,7 +13,7 @@ t = time.time() * 1000
 
 l_before = 50
 l_after = 30
-batch_size = 1000
+batch_size = 1
 log_list = glob.glob('.data/*.log')
 samples = []
 
@@ -71,9 +71,12 @@ if __name__ == '__main__':
 
     figure,axes = plt.subplots(1,2)
     for i, input_batch in enumerate(test_loader):
+        if i < 2100:
+            continue
+        print(i)
         control = input_batch[1].cuda()
-#        control_o = input_batch[1].numpy()[0,:,0] * 200
-#        predict_o = input_batch[2].numpy()[0,:,0]
+        control_o = input_batch[1].numpy()[0,:,0] * 200
+        predict_o = input_batch[2].numpy()[0,:,0]
  
         control.fill_(0)
         control.requires_grad = True
@@ -81,31 +84,31 @@ if __name__ == '__main__':
         input_batch = [input_batch[0].cuda(),control.cuda(),input_batch[2].cuda()]
 
         time_o = time.time() * 1000
-        for j in range(50):
+        for j in range(100):
             loss,predict = model(input_batch)
             optimizer.zero_grad() 
             loss.backward()
             optimizer.step()
-            print(predict[:10,0,1] * 200)
-           # print("\nloss: %7d %10.6f"%(j,loss),end = '\r')
-        time_1 = time.time() * 1000
-        print("time: %10.3f"%(time_1 - time_o))
-#            if j == 49:
-#                print('\n')
-#                control_ = control.cpu().detach().numpy()[0,:,0] * 200
-#                predict_ = predict.cpu().detach().numpy()[0,:,0]
-#        #            axes.scatter(range(control_effect.size),control_effect,label='effect')
-#        #            axes.scatter(range(control_effect.size),predict,label='predict')
-#                axes[0].plot(range(predict_.size),predict_,label='predict')
-#                axes[0].plot(range(predict_o.size),predict_o,label='predict_o')
-#                axes[0].plot(range(predict_.size),np.zeros(predict_.size),label='predict')
-#                axes[0].set_ylim(-0.05,0.05)
-#                axes[0].legend()
-#                axes[1].plot(range(control_.size),control_,label='control')
-#                axes[1].plot(range(control_o.size),control_o,label='control_o')
-#                axes[1].set_ylim(-20,20)
-#                figure.canvas.draw()
-#                plt.pause(0.01)
-#                axes[0].clear()
-#                axes[1].clear()
+#            print(predict[:10,0,1] * 200)
+            print("loss: %7d %10.6f"%(j,loss),end = '\r')
+#        time_1 = time.time() * 1000
+#        print("time: %10.3f"%(time_1 - time_o))
+            if j % 10 == 0:
+                input()
+                control_ = control.cpu().detach().numpy()[0,:,0] * 200
+                predict_ = predict.cpu().detach().numpy()[0,:,0]
+        #            axes.scatter(range(control_effect.size),control_effect,label='effect')
+        #            axes.scatter(range(control_effect.size),predict,label='predict')
+                axes[0].plot(range(predict_.size),predict_,label='predict')
+                axes[0].plot(range(predict_o.size),predict_o,label='predict_o')
+                axes[0].plot(range(predict_.size),np.zeros(predict_.size),label='predict')
+                axes[0].set_ylim(-0.50,0.50)
+                axes[0].legend()
+                axes[1].plot(range(control_.size),control_,label='control')
+                axes[1].plot(range(control_o.size),control_o,label='control_o')
+                axes[1].set_ylim(-50,50)
+                figure.canvas.draw()
+                plt.pause(0.01)
+                axes[0].clear()
+                axes[1].clear()
 
