@@ -3,6 +3,7 @@ import numpy as np
 import torch.nn as nn
 import torch.nn.init
 import torch.optim as optim
+import random
 
 lstm_width = 50
 input_width = 2
@@ -16,7 +17,7 @@ database_size = 100000
 ai_affluence = 10
 internal_params_name = {'time':0, 'object':1, 'ai_affluence':2,
                         'imu_speed_x':3, 'imu_speed_y':4, 'imu_speed':5}
-train_batch_size = 100
+train_batch_size = 50
 
 
 class AiController():
@@ -60,48 +61,50 @@ class AiController():
             self.input_array = np.zeros((database_size, input_width))
             self.internal_array = np.zeros((database_size, internal_width))
             self.output_array = np.zeros((database_size, output_width))
-            self.merged_array = np.zeros((database_size,input_width+internal_width+output_width))
+            self.merged_array = np.zeros((database_size,input_width + internal_width + output_width))
             self.array_pointer = -1
             self.input_batch = np.zeros((database_size, suf_length, input_width))
-            self.prior_batch = np.zeros((database_size, pre_length, input_width+internal_width))
+            self.prior_batch = np.zeros((database_size, pre_length, input_width + internal_width + output_width))
             self.output_batch = np.zeros((database_size, suf_length, output_width))
             self.batch_pointer = 0
 
 
         def append_input_data(self, data):
-            if self.pointer >= 0: 
+            if self.array_pointer >= 0: 
                 self.input_array[self.array_pointer] = data
                 self.merged_array[self.array_pointer,:input_width] = data
         
         def append_internal_data(self, data):
             if self.array_pointer >= 0: 
                 self.internal_array[self.array_pointer] = data
-                self.merged_array[self.array_pointer,input_width:input_width+input_width] = data
+                self.merged_array[self.array_pointer,input_width : input_width + internal_width] = data
 
         def append_output_data(self, data):
             if self.array_pointer >= 0: 
                 self.output_array[self.array_pointer] = data
                 self.merged_array[self.array_pointer,-output_width:] = data
             if self._check_can_append_to_batch():
-                self.input_batch[self.batch_pointer] = self.input_array[self.array_pointer - suf_length + 1:, :]
-                self.output_batch[self.batch_pointer] = self.output_array[self.array_pointer - suf_length + 1:, :]
+                self.input_batch[self.batch_pointer] = self.input_array[self.array_pointer - suf_length + 1 : self.array_pointer + 1, :]
+                self.output_batch[self.batch_pointer] = self.output_array[self.array_pointer - suf_length + 1 : self.array_pointer + 1, :]
                 self.prior_batch[self.batch_pointer] = self.merged_array[self.array_pointer - suf_length - pre_length + 1 : self.array_pointer - suf_length + 1, :]
             self.array_pointer += 1
             self.batch_pointer += 1
         
         def _check_can_append_to_batch(self):
-            bar = internal_array[self.array_pointer - suf_length + 1 :, internal_params_name['object']]
+            if self.array_pointer < pre_length + suf_length:
+                return False
+            bar = self.internal_array[self.array_pointer - suf_length + 1 : self.array_pointer + 1, internal_params_name['object']]
             if np.sum(bar) == suf_length:
                 return True
             else:
                 return False
 
         def get_train_batch(self):
-            if self.train_batch_size < 2 * self.batch_pointer:
-                index = random.sample(range(self.batch_pointer - self.train_batch_size), self.train_batch_size)
-                index += [self.batch_pointer - x - 1 for x in range(self.train_batch_size)]
+            if self.batch_pointer > train_batch_size * 2:
+                index = random.sample(range(self.batch_pointer - train_batch_size), train_batch_size)
+                index += [self.batch_pointer - x - 1 for x in range(train_batch_size)]
             else:
-                index = [self.batch_pointer - x - 1 for x in range(2 * self.train_batch_size)]
+                index = range(self.batch_pointer - 1)
             batch_data = {'prior':self.prior_batch[index], 'input':self.input_batch[index], 'output':self.output_batch[index]}
             return batch_data
 
@@ -137,11 +140,9 @@ class AiController():
                             nn.init.orthogonal_(param.data)
                         else:
                             nn.init.normal_(param.data)
-                    print('init done 0 (2)')
                 if isinstance(layer, nn.Linear):
                     nn.init.xavier_normal_(layer.weight.data)
                     nn.init.normal_(layer.bias.data)
-                    print('init done 1')
             
             def forward(self, prior_batch, control_batch):
                 a, (h_n, c_n) = self.lstm_a(prior_batch)
