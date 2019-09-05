@@ -7,7 +7,7 @@ import random
 
 lstm_width = 50
 input_width = 2
-internal_width = 6
+internal_width = 5
 output_width = 2
 pre_length = 15
 suf_length = 5
@@ -15,9 +15,10 @@ cuda = 0
 control_optimized_times = 20
 database_size = 100000
 ai_affluence = 10
-internal_params_name = {'time':0, 'object':1, 'ai_affluence':2,
-                        'imu_speed_x':3, 'imu_speed_y':4, 'imu_speed':5}
+internal_params_name = {'time':0, 'object':1, 
+                        'imu_speed_x':2, 'imu_speed_y':3, 'imu_speed':4}
 train_batch_size = 50
+optimize_loss_k = 0.1
 
 
 class AiController():
@@ -26,35 +27,25 @@ class AiController():
         self.ai = self.Ai()
         pass
 
-    def train(self):
-        batch_data = self.data.get_train_batch()
-        prior_batch = batch_data['prior']
-        input_batch = batch_data['input']
-        real_output_batch = batch_data['output']
-        predict_batch = self.ai.model(prior_batch, input_batch)
-        loss = self.ai.model.loss_function(predict_batch, real_output_batch)
-        self.ai.model_optimizer.zero_grad() 
-        loss.backward()
-        self.ai.model_optimizer.step()
-
-    def get_optimized_output(self, previous):
-        self.ai.to_be_optimized_control.fill_(0)
-        for i in range(control_optimized_times):
-            predict = self.ai.model(prior_batch, to_be_optimized_control)
-            loss = torch.mean(predict)
-            self.ai.control_optimizer.zero_grad()
-            loss.backward()
-            self.ai.control_optimizer.step()
-        return self.ai.to_be_optimized_control
-
-    def append_input_data(self,data):
-        self.database.append_input_data(data)
+    def train(self): #return l == (loss, predict_loss, optimize_loss)
+        a = self.database.get_train_batch()
+        l = self.ai.train(a['prior'], a['input'], a['output'])
+        return l
+        
+    def get_optimized_output(self, previous): #return c == next_control
+        a = self.database.get_train_batch()
+        c = self.ai.train(a['prior'])
+        return c[0]
 
     def append_internal_data(self,data):
         self.database.append_internal_data(data)
     
     def append_output_data(self,data):
         self.database.append_output_data(data)
+
+    def append_input_data(self,data):
+        self.database.append_input_data(data)
+
     
     class Database():
         def __init__(self):
@@ -87,8 +78,8 @@ class AiController():
                 self.input_batch[self.batch_pointer] = self.input_array[self.array_pointer - suf_length + 1 : self.array_pointer + 1, :]
                 self.output_batch[self.batch_pointer] = self.output_array[self.array_pointer - suf_length + 1 : self.array_pointer + 1, :]
                 self.prior_batch[self.batch_pointer] = self.merged_array[self.array_pointer - suf_length - pre_length + 1 : self.array_pointer - suf_length + 1, :]
+                self.batch_pointer += 1
             self.array_pointer += 1
-            self.batch_pointer += 1
         
         def _check_can_append_to_batch(self):
             if self.array_pointer < pre_length + suf_length:
@@ -102,9 +93,9 @@ class AiController():
         def get_train_batch(self):
             if self.batch_pointer > train_batch_size * 2:
                 index = random.sample(range(self.batch_pointer - train_batch_size), train_batch_size)
-                index += [self.batch_pointer - x - 1 for x in range(train_batch_size)]
+                index += [self.batch_pointer - train_batch_size + x for x in range(train_batch_size)]
             else:
-                index = range(self.batch_pointer - 1)
+                index = range(self.batch_pointer)
             batch_data = {'prior':self.prior_batch[index], 'input':self.input_batch[index], 'output':self.output_batch[index]}
             return batch_data
 
@@ -114,13 +105,9 @@ class AiController():
     class Ai():
         def __init__(self):
             self.model = self.Model() 
-            self.model_optimizer = optim.Adam(self.model.parameters())
-            self.to_be_optimized_control = torch.zeros((1, suf_length, output_width))
-            self.to_be_optimized_control.requires_grad = True
-            self.control_optimizer= optim.Adam([self.to_be_optimized_control])
+            self.optimizer = optim.Adam(self.model.parameters())
             if cuda:
                 self.model.cuda()
-                self.to_be_optimized_control.cuda()
 
         class Model(nn.Module):
             def __init__(self):
@@ -128,10 +115,12 @@ class AiController():
                 w = input_width + internal_width + output_width
                 self.lstm_a = nn.LSTM(w, lstm_width, num_layers = 1, batch_first = True)
                 self.lstm_b = nn.LSTM(w, lstm_width, num_layers = 1, batch_first = True)
-                self.linear = nn.Linear(lstm_width, output_width)
+                self.linear_a = nn.Linear(lstm_width, output_width)
+                self.linear_b = nn.Linear(lstm_width, output_width * suf_length)
                 self._init_params(self.lstm_a)
                 self._init_params(self.lstm_b)
-                self._init_params(self.linear)
+                self._init_params(self.linear_a)
+                self._init_params(self.linear_b)
             
             def _init_params(self, layer):
                 if isinstance(layer, nn.LSTM):
@@ -143,18 +132,47 @@ class AiController():
                 if isinstance(layer, nn.Linear):
                     nn.init.xavier_normal_(layer.weight.data)
                     nn.init.normal_(layer.bias.data)
+                
             
-            def forward(self, prior_batch, control_batch):
-                a, (h_n, c_n) = self.lstm_a(prior_batch)
-                b, _ = self.lstm_b(control_batch, (h_n, c_n))
-                c = self.linear(b)[:,:,0,:]
-                d = nn.functional.tanh(c) * ai_affluence
-                print('the shape of forward output is %d'%d.shape)
-                return d
-            
-            def loss_function(self, predict, real):
-                loss = torch.mean((predict - real).abs())
-                return loss
+            def forward(self, prior_batch, input_batch = None, output_batch = None):
+                if input_batch is not None:
+                    a, (h_n, c_n) = self.lstm_a(prior_batch)
+                    b, _ = self.lstm_b(control_batch, (h_n, c_n))
+                    predict = self.linear_a(b)[:,:,0,:]
+                    predict_loss = torch.mean((input_batch - output_batch).abs())
 
+                    self.lstm_a.requires_grad = False
+                    self.lstm_b.requires_grad = False
+                    self.linear_a.requires_grad = False 
+                    a, (h_n, c_n) = self.lstm_a(prior_batch)
+                    b = self.linear_b(c_n[0])
+                    b = torch.nn.functional.tanh(b) * ai_affluence
+                    optimize_control = b.view(-1, output_width, suf_length)
+                    c, _ = self.lstm_b(optimize_control, (h_n, c_n))
+                    optimize_result = self.linear_a(c)[:,:,0,:]
+                    self.linear_a.requires_grad =  optimize_loss = torch.mean(optimize_result.abs())
+                    self.lstm_a.requires_grad = True
+                    self.lstm_b.requires_grad = True
+                    self.linear_a.requires_grad = True 
 
+                    loss = predict_loss - optimize_loss * optimize_loss_k
+                    return loss, predict_loss, optimize_loss
+
+                else:
+                    a, (h_n, c_n) = self.lstm_a(prior_batch)
+                    b = self.linear_b(c_n[0]) 
+                    b = torch.nn.functional.tanh(b) * ai_affluence
+                    optimize_control = b.view(-1, output_width, suf_length)
+                    return optimize_control.numpy()
+                
+        def train(self, prior_batch, input_batch, output_batch):
+            loss, predict_loss, optimize_loss = self.model(prior_batch,input_batch,output_batch)
+            self.optimizer.zero_grad()
+            loss.backward()
+            self.optimizer.step()
+            return loss.item(), predict_loss.item(), optimize_loss.item()
+        
+        def get_optimized_control(self, prior_batch):
+            optimize_control = self.model(prior_batch)
+            return optimize_control
 
