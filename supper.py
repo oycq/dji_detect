@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.nn.init
 import torch.optim as optim
 import random
+import os
 
 lstm_width = 50
 input_width = 2
@@ -29,12 +30,18 @@ class AiController():
 
     def train(self): #return l == (loss, predict_loss, optimize_loss)
         a = self.database.get_train_batch()
+        if a is None:
+            print('Need preheat..')
+            os._exit(0)
         l = self.ai.train(a['prior'], a['input'], a['output'])
         return l
         
-    def get_optimized_output(self, previous): #return c == next_control
-        a = self.database.get_train_batch()
-        c = self.ai.train(a['prior'])
+    def get_optimized_control(self, previous): #return c == next_control
+        a = self.database.get_current_prior_info()
+        if a is None:
+            print('Need preheat..')
+            os._exit(0)
+        c = self.ai.train(a)
         return c[0]
 
     def append_internal_data(self,data):
@@ -49,10 +56,10 @@ class AiController():
     
     class Database():
         def __init__(self):
-            self.input_array = np.zeros((database_size, input_width))
-            self.internal_array = np.zeros((database_size, internal_width))
-            self.output_array = np.zeros((database_size, output_width))
-            self.merged_array = np.zeros((database_size,input_width + internal_width + output_width))
+            self.input_array = np.zeros((database_size, input_width), dtype ='float32')
+            self.internal_array = np.zeros((database_size, internal_width), dtype ='float32')
+            self.output_array = np.zeros((database_size, output_width), dtype ='float32')
+            self.merged_array = np.zeros((database_size,input_width + internal_width + output_width), dtype ='float32')
             self.array_pointer = -1
             self.input_batch = np.zeros((database_size, suf_length, input_width))
             self.prior_batch = np.zeros((database_size, pre_length, input_width + internal_width + output_width))
@@ -91,6 +98,8 @@ class AiController():
                 return False
 
         def get_train_batch(self):
+            if self.array_pointer == 0:
+                return None
             if self.batch_pointer > train_batch_size * 2:
                 index = random.sample(range(self.batch_pointer - train_batch_size), train_batch_size)
                 index += [self.batch_pointer - train_batch_size + x for x in range(train_batch_size)]
@@ -99,8 +108,13 @@ class AiController():
             batch_data = {'prior':self.prior_batch[index], 'input':self.input_batch[index], 'output':self.output_batch[index]}
             return batch_data
 
-        def get_prior_info(self):
-            data = self.prior_batch[self.batch_pointer - 1]
+        def get_current_prior_info(self):
+            if self.array_pointer < pre_length:
+                return None
+            data = self.merged_array[self.array_pointer - pre_length : self.array_pointer]
+            data = data.reshape((1, pre_length, internal_width + input_width + output_width))
+            return data
+
 
     class Ai():
         def __init__(self):
