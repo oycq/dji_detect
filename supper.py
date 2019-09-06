@@ -180,7 +180,7 @@ class AiController():
 
                     loss = predict_loss + optimize_loss * optimize_loss_k
                     #print("%10.4f %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f"%(input_batch[-1][0][0],optimize_control[-1][0][0],optimize_result[-1][0][0], predict[-1][0][0], output_batch[-1][0][0],predict_loss, optimize_loss, loss))
-                    print("%10.4f %10.4f %10.4f %10.4f %10.4f"%(input_batch[-1][0][0],optimize_control[-1][0][0], predict_loss, optimize_loss, loss))
+                    print("%10.4f %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f"%(input_batch[-1][0][0],output_batch[-1][0][0],optimize_control[-1][0][0],optimize_result[-1][0][0], predict_loss, optimize_loss, loss))
                     return loss, predict_loss, optimize_loss
 
                 else:
