@@ -87,22 +87,24 @@ while(1):
         u = v = 0
         u = x / 3
         v = y / 3
-        if sx < -20:
-            sx = - random.gauss(10, 5)
-        if sx > 20:
-            sx = random.gauss(10, 5)
-        if sy < -20:
-            sy = -random.gauss(10, 5)
-        if sy > 20:
-            sy = random.gauss(10, 5)
-        if random.gauss(0, 1) < - iii / 1000:
-            sx = random.gauss(0, 5)
-            sy = random.gauss(0, 5)
+#        if sx < -20:
+#            sx = - random.gauss(10, 5)
+#        if sx > 20:
+#            sx = random.gauss(10, 5)
+#        if sy < -20:
+#            sy = -random.gauss(10, 5)
+#        if sy > 20:
+#            sy = random.gauss(10, 5)
+        if random.gauss(0, 1) < - iii / 10000:
+            sx = random.gauss(0, 10)
+#            print('...',sx)
+            sy = random.gauss(0, 10)
 
 
         input_data = np.array([sx,sy])
         controller.append_input_data(input_data)
         gimbal.speed_control(u+sx,0,v+sy)
+#        gimbal.speed_control(u,0,v)
 
         controller.append_input_data(input_data)
 

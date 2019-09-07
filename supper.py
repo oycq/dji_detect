@@ -7,7 +7,7 @@ import random
 import os
 import time
 
-lstm_width = 50
+lstm_width = 100
 input_width = 2
 internal_width = 5
 output_width = 2
@@ -16,12 +16,12 @@ suf_length = 5
 cuda = 1
 control_optimized_times = 20
 database_size = 100000
-ai_affluence = 1
+ai_affluence = 60
 internal_params_name = {'time':0, 'object':1, 
                         'imu_speed_x':2, 'imu_speed_y':3, 'imu_speed':4}
 train_batch_size = 2000
-old_history_ratio = 0.9
-optimize_loss_k = 0.1
+old_history_ratio = 0.30
+optimize_loss_k = 1
 
 
 class AiController():
@@ -169,7 +169,7 @@ class AiController():
                     self.linear_a.requires_grad = False 
                     a, (h_n, c_n) = self.lstm_a(prior_batch)
                     b = self.linear_b(c_n[0])
-#                    b = torch.tanh(b) * ai_affluence
+                    b = torch.tanh(b) * ai_affluence
                     optimize_control = b.view(-1, suf_length, output_width)#.fill_(0.5)
                     c, _ = self.lstm_b(optimize_control, (h_n, c_n))
                     optimize_result = self.linear_a(c)
@@ -186,7 +186,7 @@ class AiController():
                 else:
                     a, (h_n, c_n) = self.lstm_a(prior_batch)
                     b = self.linear_b(c_n[0]) 
-#                    b = torch.tanh(b) * ai_affluence
+                    b = torch.tanh(b) * ai_affluence
                    # print(b)
                     optimize_control = b.view(-1, suf_length, output_width)[0][0]
                     return optimize_control.detach().cpu().numpy()
