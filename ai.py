@@ -7,6 +7,7 @@ import datetime
 import supper
 import random
 import numpy as np
+
  
 controller = supper.AiController()
 cam = camera.Camera()
@@ -14,9 +15,14 @@ cv2.namedWindow('image',cv2.WINDOW_NORMAL)
 currentDT = str(datetime.datetime.now())
 log_file = open('.data/' + currentDT + '.log', 'x')
 gimbal.speed_control(0,0,0)
+points = np.load('points.npy')
+
+
 iii = 0
+jjj = 0
+
+time_ori = time.time() * 1000
 while(1):
-    time_ori = time.time() * 1000
     gimbal.request_datas()
     raw = cam.read()
     high_light = raw.max()
@@ -26,10 +32,17 @@ while(1):
     a = image.shape[0]
     b = image.shape[1]
     max_pos = raw.argmax()
-    x = (max_pos // b) - a // 2
+    if b == 0:
+        print('error here eads')
+        break
+    x = (max_pos // b) - a // 2 
     y = (max_pos % b) - b // 2
+    x = (max_pos // b) - points[iii][1]
+    y = (max_pos % b) - points[iii][0]
+
     image[a // 2 - 2 : a // 2 + 2, :].fill(0)
     image[: , b // 2 - 2 : b // 2 + 2].fill(0)
+    cv2.circle(image, (points[iii][0],points[iii][1]), 15, (0), thickness=6)
     cv2.imshow('image',image)
     key = cv2.waitKey(2)
     imu_angle,imu_speed,imu_acc,joint_angle = gimbal.get_datas()
@@ -53,8 +66,9 @@ while(1):
         gimbal.speed_control(0,0,25)
         time.sleep(0.02)
         continue
-    if high_light < 150 or abs(x) > 590 or abs(y) > 950:
+    if high_light < 150 or abs((max_pos // b) - a // 2 ) > 590 or abs((max_pos % b) - b // 2) > 950:
         internal_data = np.array([(time.time() * 1000 - time_ori) / 50, 0, imu_speed[0]/40, imu_speed[1]/40, imu_speed[2]/40])
+        time_ori = time.time() * 1000
         output_data = np.array([x/600, y/960])
         input_data = np.array([0,0])
         controller.append_internal_data(internal_data)
@@ -69,38 +83,38 @@ while(1):
     else:
         iii += 1
         internal_data = np.array([(time.time() * 1000 - time_ori) / 50, 1, imu_speed[0]/40, imu_speed[1]/40, imu_speed[2]/40])
+        time_ori = time.time() * 1000
         output_data = np.array([x/600, y/960])
 
         controller.append_internal_data(internal_data)
         controller.append_output_data(output_data)
 
-        if iii > 24:
+        if iii > 100:
             controller.train()
-            sss = controller.get_optimized_control()
-            sx = sss[0]
-            sy = sss[1]
-        else:
-            sx = random.gauss(0, 5)
-            sy = random.gauss(0, 5)
+            if jjj % supper.suf_length == 0:
+                sss = controller.get_optimized_control()
+            sx = sss[jjj % supper.suf_length][0]
+            sy = sss[jjj % supper.suf_length][1]
+            jjj += 1
 
-#        print("%5d  %5d   %5.2f ms"%(x, y, time.time() * 1000 - time_ori),end = '\n')   
-        u = v = 0
-        u = x / 3
-        v = y / 3
-#        if sx < -20:
-#            sx = - random.gauss(10, 5)
-#        if sx > 20:
-#            sx = random.gauss(10, 5)
-#        if sy < -20:
-#            sy = -random.gauss(10, 5)
-#        if sy > 20:
-#            sy = random.gauss(10, 5)
-        if random.gauss(0, 1) < - iii / 10000:
+#            sss = controller.get_optimized_control()
+#            sx = sss[0][0]
+#            sy = sss[0][1]
+
+        else:
             sx = random.gauss(0, 10)
-#            print('...',sx)
             sy = random.gauss(0, 10)
 
+        u = x / 5
+        v = y / 5
 
+#        if random.gauss(0, 1) > - 0 + iii / 1200:
+#            sx = random.gauss(0, 10)
+#            sy = random.gauss(0, 10)
+
+
+
+#        print("%10.2f %10.2f"%(sx,sy))
         input_data = np.array([sx,sy])
         controller.append_input_data(input_data)
         gimbal.speed_control(u+sx,0,v+sy)
