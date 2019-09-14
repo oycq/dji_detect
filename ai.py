@@ -90,7 +90,7 @@ while(1):
         controller.append_output_data(output_data)
 
         if iii > 100:
-            controller.train()
+#            controller.train()
             if jjj % supper.suf_length == 0:
                 sss = controller.get_optimized_control()
             sx = sss[jjj % supper.suf_length][0]

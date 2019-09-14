@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 plot, ax = plt.subplots(1,1)
-n = 20000000
+n = 5000000
 a1 = np.random.rand(n) + 1
 a2 = np.random.rand(n) + 1
 s1 = np.fft.rfft(a1)
