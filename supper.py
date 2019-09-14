@@ -10,20 +10,21 @@ import time
 import wandb
 
 wandb.init()
-lstm_width = 100
+lstm_width = 256
 lstm_layers = 3
 input_width = 2
 internal_width = 5
 output_width = 2
 pre_length = 20
-suf_length = 5
+suf_length = 8
 cuda = 1
 database_size = 5000000
 internal_params_name = {'time':0, 'object':1, 
                         'imu_speed_x':2, 'imu_speed_y':3, 'imu_speed':4}
-train_batch_size = 1000
+train_batch_size = 500
 old_history_ratio = 0.95
-energy_loss_k = 1 / 60 / 100000
+energy_loss_k = 1 / 60 / 40000
+w_to_loss_exp = - 1
 
 
 class AiController():
@@ -158,15 +159,15 @@ class AiController():
                 self.lstm_a = nn.LSTM(w, lstm_width, batch_first = True, num_layers = lstm_layers)
                 self.lstm_b = nn.LSTM(input_width, lstm_width, batch_first = True, num_layers=lstm_layers)
                 self.linear_a = nn.Linear(lstm_width, output_width)
-                b0 = nn.Linear(lstm_width, 512)
-                b1 = nn.Linear(512, 512)
-                b2 = nn.Linear(512, output_width * suf_length)
+                b0 = nn.Linear(lstm_width, lstm_width,)
+                b1 = nn.Linear(lstm_width, lstm_width)
+                b2 = nn.Linear(lstm_width, output_width * suf_length)
                 self._init_params(b0)
                 self._init_params(b1)
                 self._init_params(b2)
                 sequent = [b0,nn.Dropout(),nn.ReLU(),b1,nn.Dropout(),nn.ReLU(),b2]
                 self.linear_b = nn.Sequential(*sequent)
-                self.w_to_loss = torch.tensor(np.exp(np.arange(suf_length) / suf_length * (-4))).cuda().unsqueeze_(-1).repeat(1,2).float()
+                self.w_to_loss = torch.tensor(np.exp(np.arange(suf_length) / suf_length * w_to_loss_exp)).cuda().unsqueeze_(-1).repeat(1,2).float()
                 self.w_to_loss /= torch.mean(self.w_to_loss)
                 self._init_params(self.lstm_b)
                 self._init_params(self.linear_a)
@@ -190,21 +191,27 @@ class AiController():
                     b, _ = self.lstm_b(input_batch, (h_n, c_n))
                     predict = self.linear_a(b)
 
-                    self.lstm_a.requires_grad = False
-                    self.lstm_b.requires_grad = False
-                    self.linear_a.requires_grad = False 
+                    for param in self.lstm_a.parameters():
+                        param.requires_grad = False
+                    for param in self.lstm_b.parameters():
+                        param.requires_grad = False
+                    for param in self.linear_a.parameters():
+                        param.requires_grad = False
                     a, (h_n, c_n) = self.lstm_a(prior_batch)
                     b = self.linear_b(c_n[-1])
                     optimize_control = b.view(-1, suf_length, output_width)#.fill_(0.5)
                     c, _ = self.lstm_b(optimize_control, (h_n, c_n))
                     optimize_result = self.linear_a(c)
-                    self.lstm_a.requires_grad = True
-                    self.lstm_b.requires_grad = True
-                    self.linear_a.requires_grad = True 
+                    for param in self.lstm_a.parameters():
+                        param.requires_grad = True
+                    for param in self.lstm_b.parameters():
+                        param.requires_grad = True
+                    for param in self.linear_a.parameters():
+                        param.requires_grad = True
 
                     predict_loss = torch.mean(self.w_to_loss * (predict- output_batch).pow(2))
                     optimize_loss = torch.mean(self.w_to_loss * optimize_result.pow(2))
-                    energy_loss = (torch.mean(optimize_control.pow(2)) / 2 + 40 * torch.mean(optimize_control.std(1))) * energy_loss_k * (predict_loss * 10000)
+                    energy_loss = (torch.mean(optimize_control.pow(2)) * 4 + 10 * torch.mean(optimize_control.std(1))) * energy_loss_k * (predict_loss * 10000)
                     loss = predict_loss + optimize_loss + energy_loss
                     #print("%10.4f %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f"%(input_batch[-1][0][0],optimize_control[-1][0][0],optimize_result[-1][0][0], predict[-1][0][0], output_batch[-1][0][0],predict_loss, optimize_loss, loss))
                     print("t:%6.2f  ix:%7.2f  ox:%8.4f%%  iy:%7.2f  oy:%8.4f  pl:%8.4f%%  ol:%8.4f%%  el:%8.4f l:%8.4f"%(prior_batch[-1][0][2] * 50, input_batch[-1][0][0],output_batch[-1][0][0]*100,input_batch[-1][0][1],output_batch[-1][0][1]*100, (predict_loss*10000)**0.5, (optimize_loss*10000)**0.5, energy_loss * 10000, loss))
@@ -225,13 +232,10 @@ class AiController():
                     return loss, predict_loss, optimize_loss, energy_loss
 
                 else:
-                    self.lstm_a.requires_grad = False
-                    self.linear_b.requires_grad = False 
-                    a, (h_n, c_n) = self.lstm_a(prior_batch)
-                    b = self.linear_b(c_n[-1]) 
-                    optimize_control = b.view(-1, suf_length, output_width)
-                    self.lstm_a.requires_grad = True
-                    self.linear_b.requires_grad = True
+                    with torch.no_grad():
+                        a, (h_n, c_n) = self.lstm_a(prior_batch)
+                        b = self.linear_b(c_n[-1]) 
+                        optimize_control = b.view(-1, suf_length, output_width)
 
                     #c, _ = self.lstm_b(optimize_control, (h_n, c_n))
                     #optimize_result = self.linear_a(c)[0]

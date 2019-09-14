@@ -91,15 +91,16 @@ while(1):
 
         if iii > 100:
 #            controller.train()
-            if jjj % supper.suf_length == 0:
-                sss = controller.get_optimized_control()
-            sx = sss[jjj % supper.suf_length][0]
-            sy = sss[jjj % supper.suf_length][1]
-            jjj += 1
 
-#            sss = controller.get_optimized_control()
-#            sx = sss[0][0]
-#            sy = sss[0][1]
+#            if jjj % supper.suf_length == 0:
+#                sss = controller.get_optimized_control()
+#            sx = sss[jjj % supper.suf_length][0]
+#            sy = sss[jjj % supper.suf_length][1]
+#            jjj += 1
+
+            sss = controller.get_optimized_control()
+            sx = sss[0][0]
+            sy = sss[0][1]
 
         else:
             sx = random.gauss(0, 10)
