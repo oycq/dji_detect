@@ -37,8 +37,8 @@ while(1):
         break
     x = (max_pos // b) - a // 2 
     y = (max_pos % b) - b // 2
-    x = (max_pos // b) - points[iii][1]
-    y = (max_pos % b) - points[iii][0]
+#    x = (max_pos // b) - points[iii][1]
+#    y = (max_pos % b) - points[iii][0]
 
     image[a // 2 - 2 : a // 2 + 2, :].fill(0)
     image[: , b // 2 - 2 : b // 2 + 2].fill(0)

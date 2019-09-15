@@ -31,10 +31,10 @@ class AiController():
     def __init__(self):
         self.database = self.Database()
         self.ai = self.Ai()
-        train_thread = threading.Thread(target = self.train, daemon = True)
-        train_thread.start()
-#        self.ai.model.load_state_dict(torch.load('../data/supper/20000.model'))
-#        self.ai.optimizer.load_state_dict(torch.load('../data/supper/20000.adam'))
+#        train_thread = threading.Thread(target = self.train, daemon = True)
+#        train_thread.start()
+        self.ai.model.load_state_dict(torch.load('../data/supper/50000.model'))
+        self.ai.optimizer.load_state_dict(torch.load('../data/supper/50000.adam'))
 
     def train(self): #return l == (loss, predict_loss, optimize_loss)
         i = 0 
@@ -161,7 +161,7 @@ class AiController():
                 self.linear_a = nn.Linear(lstm_width, output_width)
                 b0 = nn.Linear(lstm_width, lstm_width,)
                 b1 = nn.Linear(lstm_width, lstm_width)
-                b2 = nn.Linear(lstm_width, output_width * suf_length)
+                b2 = nn.Linear(lstm_width, output_width)
                 self._init_params(b0)
                 self._init_params(b1)
                 self._init_params(b2)
@@ -199,7 +199,8 @@ class AiController():
                         param.requires_grad = False
                     a, (h_n, c_n) = self.lstm_a(prior_batch)
                     b = self.linear_b(c_n[-1])
-                    optimize_control = b.view(-1, suf_length, output_width)#.fill_(0.5)
+                    optimize_control = b.view(-1, 1, output_width)#.fill_(0.5)
+                    optimize_control = optimize_control.repeat(1, suf_length, 1)
                     c, _ = self.lstm_b(optimize_control, (h_n, c_n))
                     optimize_result = self.linear_a(c)
                     for param in self.lstm_a.parameters():
@@ -211,7 +212,7 @@ class AiController():
 
                     predict_loss = torch.mean(self.w_to_loss * (predict- output_batch).pow(2))
                     optimize_loss = torch.mean(self.w_to_loss * optimize_result.pow(2))
-                    energy_loss = (torch.mean(optimize_control.pow(2)) * 4 + 10 * torch.mean(optimize_control.std(1))) * energy_loss_k * (predict_loss * 10000)
+                    energy_loss = (torch.mean(optimize_control.pow(2))) * energy_loss_k * (predict_loss * 10000)
                     loss = predict_loss + optimize_loss + energy_loss
                     #print("%10.4f %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f"%(input_batch[-1][0][0],optimize_control[-1][0][0],optimize_result[-1][0][0], predict[-1][0][0], output_batch[-1][0][0],predict_loss, optimize_loss, loss))
                     print("t:%6.2f  ix:%7.2f  ox:%8.4f%%  iy:%7.2f  oy:%8.4f  pl:%8.4f%%  ol:%8.4f%%  el:%8.4f l:%8.4f"%(prior_batch[-1][0][2] * 50, input_batch[-1][0][0],output_batch[-1][0][0]*100,input_batch[-1][0][1],output_batch[-1][0][1]*100, (predict_loss*10000)**0.5, (optimize_loss*10000)**0.5, energy_loss * 10000, loss))
@@ -235,7 +236,8 @@ class AiController():
                     with torch.no_grad():
                         a, (h_n, c_n) = self.lstm_a(prior_batch)
                         b = self.linear_b(c_n[-1]) 
-                        optimize_control = b.view(-1, suf_length, output_width)
+                        optimize_control = b.view(-1, 1, output_width)#.fill_(0.5)
+                        optimize_control = optimize_control.repeat(1, suf_length, 1)
 
                     #c, _ = self.lstm_b(optimize_control, (h_n, c_n))
                     #optimize_result = self.linear_a(c)[0]
