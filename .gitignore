@@ -3,4 +3,4 @@ wandb
 *.patch
 .data
 *.npy
-
+*.pyc
