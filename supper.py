@@ -31,10 +31,10 @@ class AiController():
     def __init__(self):
         self.database = self.Database()
         self.ai = self.Ai()
-#        train_thread = threading.Thread(target = self.train, daemon = True)
-#        train_thread.start()
-        self.ai.model.load_state_dict(torch.load('../data/supper/50000.model'))
-        self.ai.optimizer.load_state_dict(torch.load('../data/supper/50000.adam'))
+        train_thread = threading.Thread(target = self.train, daemon = True)
+        train_thread.start()
+#        self.ai.model.load_state_dict(torch.load('../data/supper/250000.model'))
+#        self.ai.optimizer.load_state_dict(torch.load('../data/supper/250000.adam'))
 
     def train(self): #return l == (loss, predict_loss, optimize_loss)
         i = 0 
@@ -43,8 +43,8 @@ class AiController():
                 a = self.database.get_train_batch()
             if a is None:
                 continue
-#                print('Need preheat..')
-#                os._exit(0)
+            if a['prior'].shape[0] == 1:
+                continue
             if i % 10000 == 0:
                 torch.save(self.ai.optimizer.state_dict(),'%s/%d.adam'%('../data/supper',i))
                 torch.save(self.ai.model.state_dict(),'%s/%d.model'%('../data/supper',i))
@@ -165,7 +165,7 @@ class AiController():
                 self._init_params(b0)
                 self._init_params(b1)
                 self._init_params(b2)
-                sequent = [b0,nn.Dropout(),nn.ReLU(),b1,nn.Dropout(),nn.ReLU(),b2]
+                sequent = [b0, nn.BatchNorm1d(lstm_width), nn.Dropout(), nn.ReLU(), b1, nn.BatchNorm1d(lstm_width), nn.Dropout(), nn.ReLU(), b2]
                 self.linear_b = nn.Sequential(*sequent)
                 self.w_to_loss = torch.tensor(np.exp(np.arange(suf_length) / suf_length * w_to_loss_exp)).cuda().unsqueeze_(-1).repeat(1,2).float()
                 self.w_to_loss /= torch.mean(self.w_to_loss)
@@ -235,7 +235,9 @@ class AiController():
                 else:
                     with torch.no_grad():
                         a, (h_n, c_n) = self.lstm_a(prior_batch)
+                        self.linear_b.eval()
                         b = self.linear_b(c_n[-1]) 
+                        self.linear_b.train()
                         optimize_control = b.view(-1, 1, output_width)#.fill_(0.5)
                         optimize_control = optimize_control.repeat(1, suf_length, 1)
 

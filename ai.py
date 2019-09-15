@@ -20,6 +20,8 @@ points = np.load('points.npy')
 
 iii = 0
 jjj = 0
+xm = 0
+ym = 0
 
 time_ori = time.time() * 1000
 while(1):
@@ -35,10 +37,10 @@ while(1):
     if b == 0:
         print('error here eads')
         break
-    x = (max_pos // b) - a // 2 
-    y = (max_pos % b) - b // 2
-#    x = (max_pos // b) - points[iii][1]
-#    y = (max_pos % b) - points[iii][0]
+#    x = (max_pos // b) - a // 2 
+#    y = (max_pos % b) - b // 2
+    x = (max_pos // b) - points[iii][1]
+    y = (max_pos % b) - points[iii][0]
 
     image[a // 2 - 2 : a // 2 + 2, :].fill(0)
     image[: , b // 2 - 2 : b // 2 + 2].fill(0)
@@ -116,9 +118,11 @@ while(1):
 
 
 #        print("%10.2f %10.2f"%(sx,sy))
-        input_data = np.array([sx,sy])
+        xm = xm *  0.65 + sx * 0.35
+        ym = ym *  0.65 + sy * 0.35
+        input_data = np.array([xm,ym])
         controller.append_input_data(input_data)
-        gimbal.speed_control(u+sx,0,v+sy)
+        gimbal.speed_control(u+xm,0,v+ym)
 #        gimbal.speed_control(u,0,v)
 
         controller.append_input_data(input_data)
